@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  *{margin:0;padding:0}
+  body{width:1024px;height:1024px;overflow:hidden}
+  .bg{
+    width:1024px;height:1024px;
+    background:#f6f5f2;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .tile{
+    width:640px;height:640px;
+    background:#ffffff;
+    border-radius:96px;
+    box-shadow:0 24px 64px rgba(0,0,0,.16),0 8px 24px rgba(0,0,0,.10);
+    overflow:hidden;
+    display:flex;flex-direction:column;
+  }
+  .band{
+    height:128px;flex:none;display:flex;
+  }
+  .band div{flex:1}
+  .content{
+    flex:1;display:flex;align-items:center;justify-content:center;
+  }
+  /* cross: two rounded maroon bars */
+  .cross{position:relative;width:320px;height:400px}
+  .cross::before,.cross::after{
+    content:"";position:absolute;background:#7a1623;border-radius:40px;
+  }
+  .cross::before{ /* vertical */
+    left:50%;top:0;width:112px;height:400px;transform:translateX(-50%);
+  }
+  .cross::after{ /* horizontal, upper third */
+    top:104px;left:0;width:320px;height:112px;
+  }
+</style>
+</head>
+<body>
+  <div class="bg">
+    <div class="tile">
+      <div class="band">
+        <div style="background:#3f3a8c"></div>
+        <div style="background:#b8860b"></div>
+        <div style="background:#2e7d52"></div>
+        <div style="background:#6a3d9a"></div>
+        <div style="background:#a01b2e"></div>
+        <div style="background:#c69214"></div>
+      </div>
+      <div class="content"><div class="cross"></div></div>
+    </div>
+  </div>
+</body>
+</html>

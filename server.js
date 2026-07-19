@@ -15,7 +15,8 @@ const types = {
   ".css": "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".md": "text/markdown; charset=utf-8",
-  ".png": "image/png"
+  ".png": "image/png",
+  ".webmanifest": "application/manifest+json; charset=utf-8"
 };
 
 createServer(async (request, response) => {

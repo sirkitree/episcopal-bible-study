@@ -2,12 +2,14 @@
   "version": 2,
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
-    { "src": "og.png", "use": "@vercel/static" },
+    { "src": "*.png", "use": "@vercel/static" },
+    { "src": "manifest.webmanifest", "use": "@vercel/static" },
     { "src": "api/*.js", "use": "@vercel/node" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1.js" },
-    { "src": "/og.png", "dest": "/og.png" },
+    { "src": "/(og|apple-touch-icon|icon-192|icon-512)\\.png", "dest": "/$1.png" },
+    { "src": "/manifest.webmanifest", "dest": "/manifest.webmanifest" },
     { "src": "/", "dest": "/index.html" }
   ]
 }
