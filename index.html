@@ -249,6 +249,22 @@
     outline:2px solid color-mix(in srgb,var(--accent,var(--brand)) 35%,transparent);
   }
   .readings-link{display:inline-block;margin-top:10px;font-size:.86rem;color:var(--brand)}
+  .track-toggle{display:flex;gap:6px;margin-bottom:10px}
+  .track-btn{
+    appearance:none;font:inherit;font-size:.82rem;font-weight:750;cursor:pointer;
+    border:1px solid color-mix(in srgb,var(--accent,var(--brand)) 25%,var(--border));
+    background:transparent;color:var(--text-muted);
+    border-radius:999px;padding:4px 11px;
+  }
+  .track-btn.is-active{
+    background:color-mix(in srgb,var(--accent,var(--brand)) 14%,var(--surface));
+    color:var(--accent,var(--brand));
+    border-color:color-mix(in srgb,var(--accent,var(--brand)) 45%,transparent);
+  }
+  .track-panel.is-hidden{display:none}
+  .readings-group-label{display:block;margin:10px 0 6px;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted)}
+  .reading-or{align-self:center;font-size:.8rem;font-style:italic;color:var(--text-muted)}
+  .track-note{margin:10px 0 0;font-size:.8rem;line-height:1.45;color:var(--text-muted)}
   .hero-image{width:100%;height:auto;display:block;border-radius:12px;margin:14px 0;border:1px solid var(--border)}
   .study-section{margin-top:30px}
   .study-section h2{font-size:1.12rem;line-height:1.25;margin:0 0 8px;font-weight:800;color:var(--accent,var(--brand))}
@@ -347,7 +363,7 @@ const BASE   = "https://www.episcopalchurch.org/bible-study/";   // multi-year h
 const DETAIL = "https://www.episcopalchurch.org/bible_study/";   // individual dated studies (underscore)
 const articleCache = new Map();
 const passageCache = new Map();
-const VERSE_RE = /\b(?:[1-3]\s*)?(?:Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|1\s*Samuel|2\s*Samuel|1\s*Kings|2\s*Kings|1\s*Chronicles|2\s*Chronicles|Ezra|Nehemiah|Esther|Job|Psalms?|Proverbs|Ecclesiastes|Song of Songs|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Matt\.?|Mark|Luke|John|Acts|Romans|1\s*Corinthians|2\s*Corinthians|Galatians|Ephesians|Philippians|Colossians|1\s*Thessalonians|2\s*Thessalonians|1\s*Timothy|2\s*Timothy|Titus|Philemon|Hebrews|James|1\s*Peter|2\s*Peter|1\s*John|2\s*John|3\s*John|Jude|Revelation|Rev\.?)\s+\d{1,3}(?::\d{1,3}[a-d]?(?:-\d{1,3}[a-d]?)?)?\b/g;
+const VERSE_RE = /\b(?:[1-3]\s*)?(?:Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|1\s*Samuel|2\s*Samuel|1\s*Kings|2\s*Kings|1\s*Chronicles|2\s*Chronicles|Ezra|Nehemiah|Esther|Job|Psalms?|Proverbs|Ecclesiastes|Song of Songs|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Wisdom(?:\s+of\s+Solomon)?|Sirach|Ecclesiasticus|Baruch|Judith|Tobit|Matthew|Matt\.?|Mark|Luke|John|Acts|Romans|1\s*Corinthians|2\s*Corinthians|Galatians|Ephesians|Philippians|Colossians|1\s*Thessalonians|2\s*Thessalonians|1\s*Timothy|2\s*Timothy|Titus|Philemon|Hebrews|James|1\s*Peter|2\s*Peter|1\s*John|2\s*John|3\s*John|Jude|Revelation|Rev\.?)\s+\d{1,3}(?::\d{1,3}[a-d]?(?:-\d{1,3}[a-d]?)?)?\b/g;
 const WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const MO_FULL = ["january","february","march","april","may","june","july","august","september","october","november","december"];
@@ -652,7 +668,7 @@ function renderStudyArticle(o,data,accent,original){
     `<a class="pill-link" href="${escapeAttr(download.url)}" target="_blank" rel="noopener">${escapeHtml(download.label)}</a>`
   ).join("");
   const author = data.author ? ` by ${data.authorUrl?`<a href="${escapeAttr(data.authorUrl)}" target="_blank" rel="noopener">${escapeHtml(data.author)}</a>`:escapeHtml(data.author)}` : "";
-  const readings = data.readings ? renderReadingsCard(data.readings,data.lectionaryUrl) : "";
+  const readings = data.readings ? renderReadingsCard(data.readings,data.lectionaryUrl,o.season) : "";
   const image = data.image&&data.image.src ? `<img class="hero-image" src="${escapeAttr(data.image.src)}" alt="${escapeAttr(data.image.alt||"")}" loading="lazy">` : "";
   const sections = (data.sections||[]).map(section=>renderSection(section,data.author)).join("");
 
@@ -679,6 +695,7 @@ function renderStudyArticle(o,data,accent,original){
       </div>
     </article>`;
   bindArticleActions();
+  bindTrackToggle();
   bindVerseLookups();
   window.scrollTo({top:0,behavior:"smooth"});
 }
@@ -703,15 +720,73 @@ function renderAuthorBio(block){
   return `<aside class="author-card"><h2>About the author</h2><p>${renderRichText(block.text||"")}</p></aside>`;
 }
 
-function renderReadingsCard(readings,lectionaryUrl){
+function renderReadingsCard(readings,lectionaryUrl,season){
   const cleaned = readings.replace(/^\[?RCL\]?\s*:?\s*/i,"").trim();
-  const parts = splitReadings(cleaned);
-  const rendered = parts.length ? parts.map(renderReadingItem).join("") : renderReadingItem(cleaned);
+  const tracks = season==="pentecost" ? splitTracks(cleaned) : null;
+  const body = tracks ? renderTrackedReadings(tracks) : renderFlatReadings(cleaned);
   return `<div class="readings-card">
     <span class="readings-title">Readings</span>
-    <div class="readings-list">${rendered}</div>
+    ${body}
     ${lectionaryUrl?`<a class="readings-link" href="${escapeAttr(lectionaryUrl)}" target="_blank" rel="noopener">Open lectionary</a>`:""}
   </div>`;
+}
+
+function renderFlatReadings(cleaned){
+  const parts = splitReadings(cleaned);
+  const rendered = parts.length ? parts.map(renderReadingItem).join("") : renderReadingItem(cleaned);
+  return `<div class="readings-list">${rendered}</div>`;
+}
+
+/* During the Season after Pentecost the RCL appoints two tracks. The scraped line
+   interleaves them as: T1-OT; T1-Psalm or T2-OT [or T2-OT-alt]; T2-Psalm; Epistle; Gospel.
+   The pivot is the psalm segment that carries an "or" leading to a non-psalm book.
+   Returns null when the line doesn't match that shape (fall back to flat rendering). */
+function splitTracks(text){
+  const segments = text.split(/\s*;\s*/).filter(Boolean);
+  const pivot = segments.findIndex(seg=>/^psalms?\b/i.test(seg) && /\bor\b/i.test(seg));
+  if(pivot<1 || pivot+2>=segments.length) return null;
+  const parts = segments[pivot].split(/\s+or\s+/i);
+  if(parts.length<2 || /^psalms?\b/i.test(parts[1])) return null;
+  if(!/^(psalms?|canticle|exodus)\b/i.test(segments[pivot+1])) return null;
+  return {
+    one: [...segments.slice(0,pivot), parts[0]],
+    two: [parts.slice(1).join(" or "), segments[pivot+1]],
+    shared: segments.slice(pivot+2)
+  };
+}
+
+function savedTrack(){ try{ return localStorage.getItem("lectionaryTrack")==="two" ? "two" : "one"; }catch{ return "one"; } }
+
+function renderTrackedReadings(tracks){
+  const active = savedTrack();
+  const group = list=>`<div class="readings-list">${list.map(renderReadingSegment).join("")}</div>`;
+  return `
+    <div class="track-toggle" role="group" aria-label="Lectionary track">
+      <button class="track-btn${active==="one"?" is-active":""}" type="button" data-track="one">Track One</button>
+      <button class="track-btn${active==="two"?" is-active":""}" type="button" data-track="two">Track Two</button>
+    </div>
+    <div class="track-panel${active==="one"?"":" is-hidden"}" data-panel="one">${group(tracks.one)}</div>
+    <div class="track-panel${active==="two"?"":" is-hidden"}" data-panel="two">${group(tracks.two)}</div>
+    <span class="readings-group-label">Both tracks</span>
+    ${group(tracks.shared)}
+    <p class="track-note">Two tracks of readings are appointed during the Season after Pentecost. St. John&rsquo;s follows Track One this year.</p>`;
+}
+
+function renderReadingSegment(segment){
+  const alternatives = segment.split(/\s+or\s+/i).filter(Boolean);
+  return alternatives.map(renderReadingItem).join(`<span class="reading-or">or</span>`);
+}
+
+function bindTrackToggle(){
+  const buttons = [...document.querySelectorAll(".track-btn")];
+  if(!buttons.length) return;
+  buttons.forEach(btn=>btn.addEventListener("click",()=>{
+    const track = btn.dataset.track;
+    try{ localStorage.setItem("lectionaryTrack",track); }catch{}
+    buttons.forEach(b=>b.classList.toggle("is-active",b===btn));
+    document.querySelectorAll(".track-panel").forEach(panel=>
+      panel.classList.toggle("is-hidden",panel.dataset.panel!==track));
+  }));
 }
 
 function renderReadingItem(reading){
@@ -757,7 +832,9 @@ function renderRichText(value){
 }
 
 function normalizeVerseRef(ref){
-  return ref.replace(/\bMatt\.?\b/i,"Matthew").replace(/\bRev\.?\b/i,"Revelation").replace(/\s+/g," ").trim();
+  return ref.replace(/\bMatt\.?\b/i,"Matthew").replace(/\bRev\.?\b/i,"Revelation")
+    .replace(/\bEcclesiasticus\b/i,"Sirach") /* bible-api.com mis-resolves the long name to Ecclesiastes */
+    .replace(/\s+/g," ").trim();
 }
 
 function bindArticleActions(){
