@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1200, initial-scale=1">
+  <title>Bible Study by Date Open Graph</title>
+  <style>
+    :root {
+      --paper: #f6f5f2;
+      --card: #ffffff;
+      --maroon: #7a1623;
+      --ink: #1d1c1a;
+      --muted: #6b6862;
+      --advent: #3f3a8c;
+      --christmas: #b8860b;
+      --epiphany: #2e7d52;
+      --lent: #6a3d9a;
+      --holy-week: #a01b2e;
+      --easter: #c69214;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 1200px;
+      height: 630px;
+      margin: 0;
+      overflow: hidden;
+      background: var(--paper);
+      font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--ink);
+    }
+
+    .canvas {
+      position: relative;
+      width: 1200px;
+      height: 630px;
+      background: var(--paper);
+      isolation: isolate;
+    }
+
+    .wordmark {
+      position: absolute;
+      left: 86px;
+      top: 95px;
+      width: 890px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 78px;
+      line-height: 0.98;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+
+    .subline {
+      margin-top: 20px;
+      font-size: 28px;
+      line-height: 1.2;
+      font-weight: 560;
+      color: var(--muted);
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .season-band {
+      position: absolute;
+      left: 126px;
+      top: 394px;
+      width: 948px;
+      height: 86px;
+      display: flex;
+      overflow: hidden;
+      border-radius: 43px;
+      box-shadow:
+        0 18px 38px rgba(29, 28, 26, 0.11),
+        inset 0 0 0 1px rgba(29, 28, 26, 0.04);
+    }
+
+    .season {
+      flex: 1;
+      height: 100%;
+    }
+
+    .advent { background: var(--advent); }
+    .christmas { background: var(--christmas); }
+    .epiphany { background: var(--epiphany); }
+    .lent { background: var(--lent); }
+    .holy-week { background: var(--holy-week); }
+    .easter { background: var(--easter); }
+
+    .tile {
+      position: absolute;
+      left: 448px;
+      top: 306px;
+      width: 146px;
+      height: 166px;
+      border-radius: 18px;
+      background: var(--card);
+      border: 5px solid var(--maroon);
+      box-shadow: 0 22px 42px rgba(29, 28, 26, 0.18);
+      overflow: hidden;
+      z-index: 2;
+    }
+
+    .tile-bar {
+      height: 19px;
+      background: var(--epiphany);
+    }
+
+    .tile-body {
+      height: calc(100% - 19px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding-top: 2px;
+    }
+
+    .day {
+      font-size: 70px;
+      line-height: 0.92;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+
+    .date-label {
+      margin-top: 14px;
+      font-size: 17px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      color: var(--muted);
+    }
+
+    .pill {
+      position: absolute;
+      left: 442px;
+      top: 492px;
+      width: 158px;
+      height: 38px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--maroon);
+      color: white;
+      font-size: 17px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      box-shadow: 0 12px 24px rgba(122, 22, 35, 0.23);
+      z-index: 3;
+    }
+  </style>
+</head>
+<body>
+  <main class="canvas" aria-label="Bible Study by Date brand image">
+    <section class="wordmark">
+      <h1>Bible Study by Date</h1>
+      <div class="subline">The Episcopal lectionary, week by week</div>
+    </section>
+
+    <div class="season-band" aria-hidden="true">
+      <div class="season advent"></div>
+      <div class="season christmas"></div>
+      <div class="season epiphany"></div>
+      <div class="season lent"></div>
+      <div class="season holy-week"></div>
+      <div class="season easter"></div>
+    </div>
+
+    <div class="tile" aria-hidden="true">
+      <div class="tile-bar"></div>
+      <div class="tile-body">
+        <div class="day">19</div>
+        <div class="date-label">SUN JUL</div>
+      </div>
+    </div>
+    <div class="pill" aria-hidden="true">THIS WEEK</div>
+  </main>
+</body>
+</html>
