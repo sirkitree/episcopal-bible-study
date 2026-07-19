@@ -205,6 +205,14 @@
 
   footer{max-width:var(--maxw);margin:0 auto;padding:8px 16px 40px;color:var(--text-muted);font-size:.8rem;text-align:center}
   footer a{color:var(--brand)}
+  .footer-about{display:block;margin-top:10px}
+
+  /* ---------- About page ---------- */
+  .release-list{list-style:none;margin:.75rem 0 0;padding:0}
+  .release-list li{margin:0;padding:10px 0;border-top:1px solid var(--border);display:flex;gap:12px;align-items:baseline}
+  .release-list li:first-child{border-top:none;padding-top:2px}
+  .release-date{flex:none;width:5.4em;font-size:.78rem;font-weight:800;letter-spacing:.3px;color:var(--text-muted);text-transform:uppercase}
+  .release-note{font-size:.96rem;line-height:1.5}
 
   @media (prefers-reduced-motion: reduce){
     *{transition:none !important}
@@ -369,6 +377,7 @@
   <a href="https://www.episcopalchurch.org/bible-study/" target="_blank" rel="noopener">episcopalchurch.org</a>.
   Studies are published about two weeks ahead; a date further out (or a feast the site
   doesn’t post on its dated scheme) opens that study’s all-years page instead.
+  <span class="footer-about"><a href="#about">About this app</a></span>
 </footer>
 
 <script>
@@ -934,7 +943,63 @@ function renderPassage(data){
   return `${verses || `<p>${escapeHtml(data.text||"")}</p>`}${note}<div class="verse-source">${escapeHtml(data.translation||"World English Bible")}</div>`;
 }
 
+/* ---------- About page ---------- */
+const REPO_URL = "https://github.com/sirkitree/episcopal-bible-study";
+const RELEASES = [
+  {date:"Jul 2026", note:"App icon and web manifest, so the app can be added to a phone home screen. Branded link previews when sharing the URL."},
+  {date:"Jul 2026", note:"Track One / Track Two grouping for readings in the Season after Pentecost, and scripture lookup for Apocrypha references."},
+  {date:"Jun 2026", note:"First release: studies organized by liturgical season with the current week highlighted, in-app study reader, and tap-to-read scripture."},
+];
+
+function renderAboutPage(){
+  document.body.classList.add("article-mode");
+  const releases = RELEASES.map(release=>
+    `<li><span class="release-date">${escapeHtml(release.date)}</span><span class="release-note">${escapeHtml(release.note)}</span></li>`
+  ).join("");
+  listEl.innerHTML=`
+    <article class="article-shell" style="--accent:var(--brand)">
+      <div class="article-actions">
+        <button class="pill-btn" id="backToIndex">‹ Back to studies</button>
+      </div>
+      <div class="article-card">
+        <div class="article-accent" aria-hidden="true"></div>
+        <div class="article-pad">
+          <div class="article-body">
+            <h1 class="article-title">About this app</h1>
+            <section class="study-section">
+              <h2>What it is</h2>
+              <p>A mobile-first reader for The Episcopal Church&rsquo;s weekly lectionary Bible studies, organized by the church calendar. The app works out where we are in the liturgical year, puts this week&rsquo;s study at the top, and pulls the study text live from
+              <a href="https://www.episcopalchurch.org/bible-study/" target="_blank" rel="noopener">episcopalchurch.org</a>.</p>
+            </section>
+            <section class="study-section">
+              <h2>Why we built it</h2>
+              <p>The official studies are excellent, but finding the right week and reading it comfortably on a phone is harder than it should be. This app fixes that: studies are grouped by season in the traditional liturgical colors, the layout is built for reading at a table, and tapping any scripture reference opens the passage in place &mdash; no leaving the app mid-discussion.</p>
+              <p>Content is never copied. Each study is fetched from the source when you open it, and author attribution, the lectionary readings, and a link back to the original are always preserved.</p>
+            </section>
+            <section class="study-section">
+              <h2>Who built it</h2>
+              <p>Built by <a href="https://github.com/sirkitree" target="_blank" rel="noopener">Jerad Bitner</a> for the Bible study group at St.&nbsp;John&rsquo;s. The studies themselves are written and published by The Episcopal Church; only the app is ours. The app code is open source under the MIT license.</p>
+            </section>
+            <section class="study-section">
+              <h2>Release notes</h2>
+              <ul class="release-list">${releases}</ul>
+            </section>
+            <div class="download-row">
+              <strong>Feedback</strong>
+              <a class="pill-link" href="${escapeAttr(REPO_URL+"/issues/new")}" target="_blank" rel="noopener">Request a feature</a>
+              <a class="pill-link" href="${escapeAttr(REPO_URL+"/issues")}" target="_blank" rel="noopener">Report a problem</a>
+              <a class="pill-link" href="${escapeAttr(REPO_URL)}" target="_blank" rel="noopener">View the code</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>`;
+  bindArticleActions();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
 function renderFromRoute(){
+  if(location.hash==="#about"){ renderAboutPage(); return; }
   const match = location.hash.match(/^#study\/([^/]+)\/(\d{4}-\d{2}-\d{2})$/);
   if(!match){ render(); return; }
   const slug = decodeURIComponent(match[1]);
