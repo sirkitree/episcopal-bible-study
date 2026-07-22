@@ -2,6 +2,35 @@ const CACHE_OK = "public, s-maxage=86400, stale-while-revalidate=604800";
 const CACHE_MISS = "public, s-maxage=300, stale-while-revalidate=1800";
 const MAX_QUERY_LENGTH = 80;
 
+// Single source of truth + allowlist for translations. Only public-domain /
+// freely-licensed versions are offered today, all served by bible-api.com.
+// The `provider` field is the seam for adding a licensed source (NRSV/ESV) later:
+// a new provider function in PROVIDERS plus a row here, with no handler changes.
+const TRANSLATIONS = {
+  web:      { name: "World English Bible",              provider: "bibleApi", code: "web"    },
+  webbe:    { name: "World English Bible (British)",    provider: "bibleApi", code: "webbe"  },
+  kjv:      { name: "King James Version",               provider: "bibleApi", code: "kjv"    },
+  bbe:      { name: "Bible in Basic English",           provider: "bibleApi", code: "bbe"    },
+  "oeb-cw": { name: "Open English Bible (Commonwealth)", provider: "bibleApi", code: "oeb-cw" }
+};
+const DEFAULT_TRANSLATION = "web";
+
+// Provider handlers fetch a passage for a given upstream translation code.
+const PROVIDERS = {
+  async bibleApi(query, code) {
+    const url = new URL(`https://bible-api.com/${encodeURIComponent(query)}`);
+    url.searchParams.set("translation", code);
+    const response = await fetch(url, { redirect: "follow" });
+    return { response, data: await response.json() };
+  }
+};
+
+// Resolve a raw query param to a valid registry key, defaulting when unknown.
+function resolveTranslation(value) {
+  const key = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return Object.prototype.hasOwnProperty.call(TRANSLATIONS, key) ? key : DEFAULT_TRANSLATION;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
@@ -15,12 +44,14 @@ export default async function handler(req, res) {
     return;
   }
 
+  const translation = resolveTranslation(req.query.translation);
+
   try {
     const lookup = normalizeLookup(q);
-    const { response, data } = await fetchPassage(lookup);
+    const { response, data } = await fetchPassage(lookup, translation);
 
     if (!response.ok || data.error) {
-      const fallback = await clampedRangeFallback(lookup);
+      const fallback = await clampedRangeFallback(lookup, translation);
       if (fallback) {
         res.setHeader("Cache-Control", CACHE_OK);
         res.status(200).json({ ok: true, requestedReference: q, ...normalizePassage(fallback.data, fallback.note) });
@@ -40,19 +71,17 @@ export default async function handler(req, res) {
   }
 }
 
-async function fetchPassage(query) {
-  const url = new URL(`https://bible-api.com/${encodeURIComponent(query)}`);
-  url.searchParams.set("translation", "web");
-  const response = await fetch(url, { redirect: "follow" });
-  return { response, data: await response.json() };
+async function fetchPassage(query, translation = DEFAULT_TRANSLATION) {
+  const entry = TRANSLATIONS[translation] || TRANSLATIONS[DEFAULT_TRANSLATION];
+  return PROVIDERS[entry.provider](query, entry.code);
 }
 
-async function clampedRangeFallback(query) {
+async function clampedRangeFallback(query, translation = DEFAULT_TRANSLATION) {
   const parsed = query.match(/^(.+?)\s+(\d{1,3}):(\d{1,3})(?:-\d{1,3})?$/);
   if (!parsed) return null;
 
   const [, book, chapter, start] = parsed;
-  const whole = await fetchPassage(`${book} ${chapter}`);
+  const whole = await fetchPassage(`${book} ${chapter}`, translation);
   if (!whole.response.ok || whole.data.error || !Array.isArray(whole.data.verses)) return null;
 
   const lastVerse = whole.data.verses.at(-1)?.verse;
@@ -61,7 +90,7 @@ async function clampedRangeFallback(query) {
   const clampedQuery = `${book} ${chapter}:${start}-${lastVerse}`;
   if (clampedQuery === query) return null;
 
-  const clamped = await fetchPassage(clampedQuery);
+  const clamped = await fetchPassage(clampedQuery, translation);
   if (!clamped.response.ok || clamped.data.error) return null;
 
   return {
