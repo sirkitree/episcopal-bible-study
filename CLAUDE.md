@@ -32,4 +32,5 @@ A no-framework, no-build app: one static client plus two serverless functions. C
 - **API responses are typed JSON blocks, never raw upstream HTML.** Keep parsing/sanitizing server-side.
 - Both API handlers are GET-only and set `Cache-Control` (`CACHE_OK` / `CACHE_MISS`) on every response; follow that pattern for new endpoints.
 - Author attribution, lectionary readings, and a link back to the original must always be preserved in rendered studies (content is The Episcopal Church's work; only the app code is MIT).
+- **Markdown is never hard-wrapped at 80 columns.** Write one line per paragraph/bullet and let it soft-wrap — this applies everywhere, including commit messages, PR descriptions, and docs.
 - See `design.md` for full design notes.
