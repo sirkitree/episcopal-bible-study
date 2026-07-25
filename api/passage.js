@@ -54,21 +54,41 @@ export default async function handler(req, res) {
       const fallback = await clampedRangeFallback(lookup, translation);
       if (fallback) {
         res.setHeader("Cache-Control", CACHE_OK);
-        res.status(200).json({ ok: true, requestedReference: q, ...normalizePassage(fallback.data, fallback.note) });
+        res.status(200).json({ ok: true, requestedReference: q, ...normalizePassage(fallback.data, translation, fallback.note) });
         return;
       }
 
       res.setHeader("Cache-Control", CACHE_MISS);
-      res.status(404).json({ ok: false, error: data.error || "Passage not found" });
+      res.status(404).json({ ok: false, error: await notFoundMessage(lookup, translation, data.error) });
       return;
     }
 
     res.setHeader("Cache-Control", CACHE_OK);
-    res.status(200).json({ ok: true, requestedReference: q, ...normalizePassage(data) });
+    res.status(200).json({ ok: true, requestedReference: q, ...normalizePassage(data, translation) });
   } catch (error) {
     res.setHeader("Cache-Control", CACHE_MISS);
     res.status(500).json({ ok: false, error: error.message || "Unable to load passage" });
   }
+}
+
+// A lookup can fail because the reference is wrong, or because the chosen
+// translation simply does not carry that book — the Open English Bible has only
+// part of the Old Testament, and neither it nor the Bible in Basic English has
+// the Apocrypha. Probing the default translation tells the two apart without a
+// hand-maintained coverage table that would drift as upstream adds books.
+async function notFoundMessage(query, translation, upstreamError) {
+  const generic = typeof upstreamError === "string" && upstreamError ? upstreamError : "Passage not found";
+  if (translation === DEFAULT_TRANSLATION) return generic;
+
+  try {
+    const probe = await fetchPassage(query, DEFAULT_TRANSLATION);
+    if (probe.response.ok && !probe.data.error) {
+      return `${query} is not available in the ${TRANSLATIONS[translation].name}. Try another translation.`;
+    }
+  } catch (error) {
+    // Probe is best-effort; fall back to the upstream message.
+  }
+  return generic;
 }
 
 async function fetchPassage(query, translation = DEFAULT_TRANSLATION) {
@@ -99,10 +119,11 @@ async function clampedRangeFallback(query, translation = DEFAULT_TRANSLATION) {
   };
 }
 
-function normalizePassage(data, note = "") {
+function normalizePassage(data, translation = DEFAULT_TRANSLATION, note = "") {
+  const entry = TRANSLATIONS[translation] || TRANSLATIONS[DEFAULT_TRANSLATION];
   return {
     reference: data.reference || "",
-    translation: data.translation_name || "World English Bible",
+    translation: data.translation_name || entry.name,
     note,
     text: cleanText(data.text || ""),
     verses: Array.isArray(data.verses) ? data.verses.map(verse => ({
