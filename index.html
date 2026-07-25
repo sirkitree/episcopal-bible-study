@@ -322,7 +322,9 @@
   .verse-scrim.open{opacity:1;pointer-events:auto}
   .verse-panel-head{padding:16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
   .verse-panel-title{margin:0;font-size:1.05rem;line-height:1.25;font-weight:800;color:var(--accent,var(--brand))}
-  .verse-close{appearance:none;border:1px solid var(--border);background:var(--surface-2);color:var(--text);border-radius:999px;width:34px;height:34px;cursor:pointer;font-size:1.1rem;line-height:1}
+  .verse-tools{display:flex;gap:8px;align-items:center;flex-shrink:0}
+  .verse-translation{appearance:none;border:1px solid var(--border);background:var(--surface-2);color:var(--text);border-radius:999px;padding:6px 10px;max-width:9.5rem;font-size:.82rem;line-height:1;cursor:pointer;text-overflow:ellipsis}
+  .verse-close{appearance:none;border:1px solid var(--border);background:var(--surface-2);color:var(--text);border-radius:999px;width:34px;height:34px;cursor:pointer;font-size:1.1rem;line-height:1;flex-shrink:0}
   .verse-panel-body{flex:1;min-height:0;padding:16px;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;line-height:1.6}
   .verse-panel-body p{margin:.75rem 0}
   .verse-line{margin:.65rem 0}
@@ -387,6 +389,28 @@ const BASE   = "https://www.episcopalchurch.org/bible-study/";   // multi-year h
 const DETAIL = "https://www.episcopalchurch.org/bible_study/";   // individual dated studies (underscore)
 const articleCache = new Map();
 const passageCache = new Map();
+// Public-domain translations offered in the verse pop-out. Codes must match the
+// allowlist in api/passage.js (TRANSLATIONS), which only carries complete Bibles
+// including the Apocrypha. Order sets the dropdown order.
+const TRANSLATIONS = [
+  {code:"web",   name:"World English Bible"},
+  {code:"webbe", name:"WEB (British)"},
+  {code:"kjv",   name:"King James Version"}
+];
+const TRANSLATION_KEY = "ebs.translation";
+const DEFAULT_TRANSLATION = "web";
+function getTranslation(){
+  try{
+    const stored = localStorage.getItem(TRANSLATION_KEY);
+    if(stored && TRANSLATIONS.some(t=>t.code===stored)) return stored;
+  }catch(e){}
+  return DEFAULT_TRANSLATION;
+}
+function setTranslation(code){
+  try{ localStorage.setItem(TRANSLATION_KEY,code); }catch(e){}
+}
+let currentVerseRef = "";
+let verseRequestToken = 0;
 const VERSE_RE = /\b(?:[1-3]\s*)?(?:Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|1\s*Samuel|2\s*Samuel|1\s*Kings|2\s*Kings|1\s*Chronicles|2\s*Chronicles|Ezra|Nehemiah|Esther|Job|Psalms?|Proverbs|Ecclesiastes|Song of Songs|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Wisdom(?:\s+of\s+Solomon)?|Sirach|Ecclesiasticus|Baruch|Judith|Tobit|Matthew|Matt\.?|Mark|Luke|John|Acts|Romans|1\s*Corinthians|2\s*Corinthians|Galatians|Ephesians|Philippians|Colossians|1\s*Thessalonians|2\s*Thessalonians|1\s*Timothy|2\s*Timothy|Titus|Philemon|Hebrews|James|1\s*Peter|2\s*Peter|1\s*John|2\s*John|3\s*John|Jude|Revelation|Rev\.?)\s+\d{1,3}(?::\d{1,3}[a-d]?(?:-\d{1,3}[a-d]?)?)?\b/g;
 const WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -883,6 +907,12 @@ function bindVerseLookups(){
 
 async function showVersePanel(ref){
   const panel = ensureVersePanel();
+  // Hovering, tapping and switching translations can all start a lookup, so a
+  // slower earlier request must not overwrite a newer one's text.
+  const token = ++verseRequestToken;
+  currentVerseRef = ref;
+  const translation = getTranslation();
+  panel.select.value = translation;
   panel.title.textContent = ref;
   panel.body.innerHTML = `<p>Loading passage...</p>`;
   document.body.classList.add("verse-open");
@@ -890,16 +920,19 @@ async function showVersePanel(ref){
   panel.el.classList.add("open");
 
   try{
-    let data = passageCache.get(ref);
+    const cacheKey = `${ref}|${translation}`;
+    let data = passageCache.get(cacheKey);
     if(!data){
-      const response = await fetch("/api/passage?q="+encodeURIComponent(ref), { cache:"no-store" });
+      const response = await fetch(`/api/passage?q=${encodeURIComponent(ref)}&translation=${encodeURIComponent(translation)}`, { cache:"no-store" });
       data = await response.json();
       if(!response.ok || !data.ok) throw new Error(data.error || "Unable to load passage.");
-      passageCache.set(ref,data);
+      passageCache.set(cacheKey,data);
     }
+    if(token !== verseRequestToken) return;
     panel.title.textContent = data.reference || ref;
     panel.body.innerHTML = renderPassage(data);
   }catch(error){
+    if(token !== verseRequestToken) return;
     panel.body.innerHTML = `<p>${escapeHtml(error.message || "Unable to load passage.")}</p>`;
   }
 }
@@ -915,21 +948,33 @@ function ensureVersePanel(){
     el.id = "versePanel";
     el.className = "verse-panel";
     el.setAttribute("aria-live","polite");
+    const options = TRANSLATIONS.map(t=>`<option value="${t.code}">${escapeHtml(t.name)}</option>`).join("");
     el.innerHTML = `
       <div class="verse-panel-head">
         <h2 class="verse-panel-title" id="versePanelTitle">Passage</h2>
-        <button class="verse-close" type="button" aria-label="Close passage">×</button>
+        <div class="verse-tools">
+          <select class="verse-translation" id="verseTranslation" aria-label="Bible translation">${options}</select>
+          <button class="verse-close" type="button" aria-label="Close passage">×</button>
+        </div>
       </div>
       <div class="verse-panel-body" id="versePanelBody"></div>`;
     document.body.append(scrim,el);
     scrim.addEventListener("click",closeVersePanel);
     el.querySelector(".verse-close").addEventListener("click",closeVersePanel);
+    const select = el.querySelector("#verseTranslation");
+    select.value = getTranslation();
+    select.addEventListener("change",()=>{
+      setTranslation(select.value);
+      if(currentVerseRef && el.classList.contains("open")) showVersePanel(currentVerseRef);
+    });
     document.addEventListener("keydown",event=>{ if(event.key==="Escape") closeVersePanel(); });
   }
-  return { el, scrim, title: document.getElementById("versePanelTitle"), body: document.getElementById("versePanelBody") };
+  return { el, scrim, title: document.getElementById("versePanelTitle"), body: document.getElementById("versePanelBody"), select: document.getElementById("verseTranslation") };
 }
 
 function closeVersePanel(){
+  verseRequestToken++;   // abandon any lookup still in flight
+  currentVerseRef = "";
   document.getElementById("versePanel")?.classList.remove("open");
   document.getElementById("verseScrim")?.classList.remove("open");
   document.body.classList.remove("verse-open");
@@ -940,7 +985,7 @@ function renderPassage(data){
     `<p class="verse-line"><span class="verse-num">${escapeHtml(verse.verse)}</span>${escapeHtml(verse.text)}</p>`
   ).join("");
   const note = data.note ? `<p class="verse-source">${escapeHtml(data.note)}</p>` : "";
-  return `${verses || `<p>${escapeHtml(data.text||"")}</p>`}${note}<div class="verse-source">${escapeHtml(data.translation||"World English Bible")}</div>`;
+  return `${verses || `<p>${escapeHtml(data.text||"")}</p>`}${note}<div class="verse-source">${escapeHtml(data.translation||"")}</div>`;
 }
 
 /* ---------- About page ---------- */
