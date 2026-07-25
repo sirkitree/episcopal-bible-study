@@ -4,14 +4,17 @@ const MAX_QUERY_LENGTH = 80;
 
 // Single source of truth + allowlist for translations. Only public-domain /
 // freely-licensed versions are offered today, all served by bible-api.com.
+// A translation belongs here only if it is a complete Bible *including the
+// Apocrypha* — the lectionary appoints Sirach, Wisdom, Baruch, Tobit and Judith,
+// so a partial text would fail on readings the app links every year. That rules
+// out the Bible in Basic English (no Apocrypha) and the Open English Bible (only
+// part of the Old Testament translated).
 // The `provider` field is the seam for adding a licensed source (NRSV/ESV) later:
 // a new provider function in PROVIDERS plus a row here, with no handler changes.
 const TRANSLATIONS = {
-  web:      { name: "World English Bible",              provider: "bibleApi", code: "web"    },
-  webbe:    { name: "World English Bible (British)",    provider: "bibleApi", code: "webbe"  },
-  kjv:      { name: "King James Version",               provider: "bibleApi", code: "kjv"    },
-  bbe:      { name: "Bible in Basic English",           provider: "bibleApi", code: "bbe"    },
-  "oeb-cw": { name: "Open English Bible (Commonwealth)", provider: "bibleApi", code: "oeb-cw" }
+  web:   { name: "World English Bible",           provider: "bibleApi", code: "web"   },
+  webbe: { name: "World English Bible (British)", provider: "bibleApi", code: "webbe" },
+  kjv:   { name: "King James Version",            provider: "bibleApi", code: "kjv"   }
 };
 const DEFAULT_TRANSLATION = "web";
 

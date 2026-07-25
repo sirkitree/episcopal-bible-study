@@ -390,13 +390,12 @@ const DETAIL = "https://www.episcopalchurch.org/bible_study/";   // individual d
 const articleCache = new Map();
 const passageCache = new Map();
 // Public-domain translations offered in the verse pop-out. Codes must match the
-// allowlist in api/passage.js (TRANSLATIONS). Order sets the dropdown order.
+// allowlist in api/passage.js (TRANSLATIONS), which only carries complete Bibles
+// including the Apocrypha. Order sets the dropdown order.
 const TRANSLATIONS = [
-  {code:"web",     name:"World English Bible"},
-  {code:"webbe",   name:"WEB (British)"},
-  {code:"kjv",     name:"King James Version"},
-  {code:"bbe",     name:"Bible in Basic English"},
-  {code:"oeb-cw",  name:"Open English Bible (partial OT)"}
+  {code:"web",   name:"World English Bible"},
+  {code:"webbe", name:"WEB (British)"},
+  {code:"kjv",   name:"King James Version"}
 ];
 const TRANSLATION_KEY = "ebs.translation";
 const DEFAULT_TRANSLATION = "web";
