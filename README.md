@@ -62,6 +62,6 @@ vercel --prod # production
 
 ## Attribution & content
 
-The Bible studies are written and published by [The Episcopal Church](https://www.episcopalchurch.org/bible-study/) and remain their work — this app only reformats and links to them, and preserves author and source links throughout. Scripture text shown in the lookup panel is the World English Bible (public domain) via bible-api.com. The Library's texts and essays come from the [apoc](https://github.com/sirkitree/apoc) collection: the translations are public domain (King James with Apocrypha, Douay-Rheims, and the World English Bible), and every reading and essay view names its edition and links the exact source file.
+The Bible studies are written and published by [The Episcopal Church](https://www.episcopalchurch.org/bible-study/) and remain their work — this app only reformats and links to them, and preserves author and source links throughout. Scripture text shown in the lookup panel is the World English Bible (public domain) via bible-api.com. The Library's texts and essays come from the [apoc](https://github.com/sirkitree/apoc) collection: the translations are public domain (King James with Apocrypha, Douay-Rheims, and the World English Bible), every reading names its edition, rights and source, and both readings and essays link the exact source file. The essays are the collection owner's own work rather than translations, so they name the collection instead of an edition.
 
 The application code in this repository is released under the [MIT License](LICENSE).

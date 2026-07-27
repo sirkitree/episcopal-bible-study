@@ -435,6 +435,6 @@ Essays are parsed from each book directory's `README.md` into the same typed blo
 
 ### Verse reference safety
 
-bible-api.com resolves a book name it does not recognise to the nearest one it does, rather than returning an error. `Prayer of Azariah 1:1` comes back as the Prayer of Manasses; `Song of the Three Holy Children 1:1` comes back as the Song of Solomon. Serving that is worse than serving nothing, so `api/passage.js` checks every response against the book actually returned and rejects a mismatch. `BOOK_ALIASES` enumerates the only cases where a different name back is still the right book.
+bible-api.com resolves a book name it does not recognise to the nearest one it does, rather than returning an error. `Prayer of Azariah 1:1` comes back as the Prayer of Manasses; `Song of the Three Holy Children 1:1` comes back as the Song of Solomon. Serving that is worse than serving nothing, so `api/passage.js` checks every response against the book actually returned and rejects a mismatch. `BOOK_SYNONYMS` groups the names that mean one book and both sides are resolved to their group before comparing. Grouping rather than renaming matters: the name the source returns varies by translation as well as from the name asked with, so a one-directional map rejects valid lookups in one direction.
 
 For the same reason those two books are deliberately absent from `VERSE_RE`: the guard would reject them anyway, and leaving them unlinked avoids a dead tap.

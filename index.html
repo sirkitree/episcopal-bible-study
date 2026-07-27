@@ -593,6 +593,10 @@ function setTranslation(code){
 }
 let currentVerseRef = "";
 let verseRequestToken = 0;
+// The Library keeps its own request token. Sharing the verse panel's would mean
+// closing a lookup — which bumps that token — abandons an in-flight Library
+// fetch and strands the view on "Loading...".
+let libraryRequestToken = 0;
 // Books listed here become tap-to-read references. The Apocrypha entries are
 // limited to what bible-api.com actually carries, verified by lookup rather than
 // assumed. Deliberately absent: "Song of the Three Holy Children" and "Prayer of
@@ -1361,7 +1365,7 @@ async function renderEssay(id){
   enterLibrary();
   setLibraryHeader(book.name, bookHash(book));
   const accent = bookAccent(book);
-  const token = ++verseRequestToken;
+  const token = ++libraryRequestToken;
 
   const shell = inner =>
     `<div class="library-page library-reading" style="--accent:${accent}">${inner}</div>`;
@@ -1371,7 +1375,7 @@ async function renderEssay(id){
 
   let data, error = "";
   try{ data = await loadEssay(id); }catch(e){ error = e.message; }
-  if(token !== verseRequestToken) return;
+  if(token !== libraryRequestToken) return;
 
   if(error){ listEl.innerHTML = shell(`<p class="library-intro">${escapeHtml(error)}</p>`); return; }
 
@@ -1383,6 +1387,7 @@ async function renderEssay(id){
     <p class="attribution">Written for the
       <a href="${escapeAttr(p.sourceUrl)}" target="_blank" rel="noopener">apoc</a> collection.
       <a href="${escapeAttr(p.corpusUrl)}" target="_blank" rel="noopener">View source</a>.</p>`);
+  bindVerseLookups();
 }
 
 function setActiveTab(name){
@@ -1461,7 +1466,7 @@ async function renderBookPage(id){
   enterLibrary();
   setLibraryHeader(book.name, "#library");
   const accent = bookAccent(book);
-  const token = ++verseRequestToken;
+  const token = ++libraryRequestToken;
 
   const shell = inner => `<div class="library-page" style="--accent:${accent}">
       <p class="library-intro">${escapeHtml(book.blurb)}</p>${inner}</div>`;
@@ -1471,7 +1476,7 @@ async function renderBookPage(id){
 
   let data, error = "";
   try{ data = await loadBook(id); }catch(e){ error = e.message; }
-  if(token !== verseRequestToken) return;
+  if(token !== libraryRequestToken) return;
 
   if(error){ listEl.innerHTML = shell(`<p class="library-intro">${escapeHtml(error)}</p>`); return; }
 
@@ -1501,7 +1506,7 @@ async function renderChapter(id, n){
   if(!book){ location.hash="#library"; return; }
   enterLibrary();
   const accent = bookAccent(book);
-  const token = ++verseRequestToken;
+  const token = ++libraryRequestToken;
 
   // No card: the Library bar carries the title, so the text sits on the page.
   const shell = inner =>
@@ -1514,7 +1519,7 @@ async function renderChapter(id, n){
 
   let data, error = "";
   try{ data = await loadBook(id); }catch(e){ error = e.message; }
-  if(token !== verseRequestToken) return;
+  if(token !== libraryRequestToken) return;
 
   if(error){ listEl.innerHTML = shell(`<p>${escapeHtml(error)}</p>`); return; }
 
