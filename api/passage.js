@@ -26,20 +26,30 @@ const DEFAULT_TRANSLATION = "web";
 // the book the source actually returned (see resolutionMismatch below).
 //
 // The check is an exact match on `book_name`, which holds for all 66 canonical
-// books. These are the only pairs where a different name back is still the right
-// book; anything else is a misresolution. Keys are normalized (lowercase, no
-// trailing period); values are bible-api's `book_name`.
-const BOOK_ALIASES = {
-  "psalm": "psalms",
-  "song of songs": "song of solomon",
-  "canticles": "song of solomon",
-  "wisdom of solomon": "wisdom",
-  "bel and the dragon": "bel",
-  "prayer of manasseh": "manasseh",
-  "prayer of manasses": "manasseh",
-  "matt": "matthew",
-  "rev": "revelation"
-};
+// books. Below are the sets of names that all mean one book; a name back from
+// any other set is a misresolution.
+//
+// These are equivalence groups rather than a rename map because the name the
+// source returns varies by translation, not just from the name we asked with:
+// Wisdom 3:1 comes back as "Wisdom" in the KJV but "Wisdom of Solomon" in the
+// WEB. A one-directional alias table got that backwards and rejected a valid
+// lookup of a book the lectionary appoints.
+const BOOK_SYNONYMS = [
+  ["psalms", "psalm"],
+  ["song of solomon", "song of songs", "canticles"],
+  ["wisdom", "wisdom of solomon"],
+  ["sirach", "ecclesiasticus"],
+  ["bel", "bel and the dragon"],
+  ["manasseh", "prayer of manasseh", "prayer of manasses"],
+  ["matthew", "matt"],
+  ["revelation", "rev"]
+];
+
+// name -> the first name in its group, so two names for one book compare equal.
+const BOOK_GROUPS = new Map();
+for (const group of BOOK_SYNONYMS) {
+  for (const name of group) BOOK_GROUPS.set(name, group[0]);
+}
 
 // Provider handlers fetch a passage for a given upstream translation code.
 const PROVIDERS = {
@@ -139,10 +149,10 @@ function normalizeBookName(value) {
 }
 
 // Returns an error message when the source resolved the reference to a different
-// book than the one asked for, or "" when the result is trustworthy. Note that
-// "Ecclesiasticus" is deliberately absent from BOOK_ALIASES: bible-api resolves it
-// to Ecclesiastes, a different book entirely, so it should be rejected here if it
-// ever reaches the API (the client rewrites it to Sirach first).
+// book than the one asked for, or "" when the result is trustworthy. Grouping
+// "ecclesiasticus" with "sirach" is what makes that name safe: asking by it still
+// gets rejected, because the source answers with Ecclesiastes, which is a
+// different book and so a different group.
 function resolutionMismatch(query, data) {
   const asked = normalizeBookName(requestedBook(query));
   if (!asked) return "";
@@ -150,8 +160,7 @@ function resolutionMismatch(query, data) {
   const returned = normalizeBookName(data?.verses?.[0]?.book_name);
   if (!returned) return "";
 
-  const expected = BOOK_ALIASES[asked] || asked;
-  if (expected === returned) return "";
+  if ((BOOK_GROUPS.get(asked) || asked) === (BOOK_GROUPS.get(returned) || returned)) return "";
 
   return `${requestedBook(query)} is not a book this source carries. It returned ${data.verses[0].book_name} instead, so no text is shown.`;
 }

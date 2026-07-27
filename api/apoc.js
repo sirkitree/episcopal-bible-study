@@ -187,6 +187,10 @@ async function sendText(res, key, { book, file, name }) {
   res.status(200).json({
     ok: true,
     book: { id: key, name, note: book.note || "" },
+    // The sectioned-prose format declares that bare numbers in these texts are
+    // manuscript page numbers rather than verses, so the reader can mark them as
+    // apparatus instead of leaving digits loose in the middle of a sentence.
+    pageNumbers: file.format === "sectioned-prose",
     chapters: chapters.map(chapter => ({
       number: chapter.number,
       verses: chapter.verses.map(verse => ({

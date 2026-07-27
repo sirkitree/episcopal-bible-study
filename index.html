@@ -453,6 +453,10 @@
     border-bottom:1px solid var(--border);
   }
   .study-section th{font-weight:800;color:var(--accent,var(--brand));white-space:nowrap}
+  /* Manuscript page markers: superscript like a verse number but muted, so they
+     read as apparatus rather than as part of the text. */
+  .page-num{font-size:.68rem;font-weight:600;color:var(--text-muted);
+    vertical-align:super;margin:0 3px 0 1px;opacity:.75}
   .section-title{font-size:1rem;font-weight:800;margin:1.6rem 0 .35rem;line-height:1.3;
     color:color-mix(in srgb, var(--accent,var(--brand)) 78%, var(--text))}
   .essay-standfirst{font-size:1.08rem;line-height:1.6;color:var(--text-muted);margin:2px 0 4px}
@@ -1526,6 +1530,9 @@ async function renderChapter(id, n){
          <a class="pill-btn" href="${escapeAttr(bookHash(book))}/about">About this book</a>
        </div>`
     : "";
+  const pageNote = data.pageNumbers
+    ? `<p class="library-intro" style="margin:0 0 18px">Small numbers are the pages of the manuscript, not verses.</p>`
+    : "";
 
   const prev = data.chapters[index-1], next = data.chapters[index+1];
   const nav = single ? "" : `
@@ -1537,18 +1544,26 @@ async function renderChapter(id, n){
 
   // Some texts are divided into named sections rather than numbered verses, and
   // some carry both (Thomas's sayings). Show whichever the text actually has.
+  // In the Nag Hammadi and Codex Tchacos texts a bare number is the manuscript
+  // page it falls on, not a verse. Mark them so they read as apparatus.
+  const body = text => data.pageNumbers
+    ? escapeHtml(text).replace(/(?<![\w:.-])(\d{1,3})(?![\w:.-])/g,
+        `<span class="page-num" title="Manuscript page $1">$1</span>`)
+    : escapeHtml(text);
+
   const verses = chapter.verses.map(verse=>{
     const heading = verse.title
       ? `<h3 class="section-title">${verse.verse!=null?`${verse.verse}. `:""}${escapeHtml(verse.title)}</h3>`
       : "";
     const num = (!verse.title && verse.verse!=null)
       ? `<span class="verse-num">${verse.verse}</span>` : "";
-    return `${heading}<p class="verse-line">${num}${escapeHtml(verse.text)}</p>`;
+    return `${heading}<p class="verse-line">${num}${body(verse.text)}</p>`;
   }).join("");
 
   const p = data.provenance;
   listEl.innerHTML = shell(`
     ${about}
+    ${pageNote}
     ${verses}
     ${nav}
     <p class="attribution">${escapeHtml(p.edition)} &mdash; ${escapeHtml(p.rights)}, via
