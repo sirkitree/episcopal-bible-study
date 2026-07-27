@@ -231,6 +231,11 @@ Return JSON:
   "authorUrl": "https://www.episcopalchurch.org/authors/adelle-dennis/",
   "readings": "Genesis 21:8-21, Psalm 86:1-10, 16-17, Romans 6:1b-11, Matthew 10:24-39",
   "lectionaryUrl": "https://www.episcopalchurch.org/lectionary/proper-7a/",
+  "tracks": {
+    "one": ["Genesis 21:8-21", "Psalm 86:1-10, 16-17"],
+    "two": ["Jeremiah 20:7-13", "Psalm 69:8-11, (12-17), 18-20"],
+    "shared": ["Romans 6:1b-11", "Matthew 10:24-39"]
+  },
   "image": {
     "src": "https://www.episcopalchurch.org/wp-content/uploads/2026/05/Proper-7A-Bible-study-1024x576.png",
     "alt": "Have there been times in your life when God was your ultimate priority?"
@@ -268,10 +273,11 @@ Extraction strategy:
 4. Capture date and author from the immediate metadata following the title.
 5. Capture readings from the `RCL:` paragraph and preserve its lectionary link.
 6. Capture the first meaningful image after the readings as the hero image.
-7. Convert bold labels ending with `|` into section headings. Examples: `Opening Prayer |`, `Context |`, `Theological Reflection |`, `Reflection Questions |`, `Faith in Practice |`.
-8. Preserve paragraphs, emphasis, and unordered lists inside each section.
-9. Stop parsing when reaching downloads, categories, language switcher, podcast subscription, contact block, donation block, or footer navigation.
-10. Extract PDF and Word download links separately.
+7. Fetch the lectionary page from that link and read the two tracks of readings appointed during the Season after Pentecost. Each track is a tab (`.wp-block-getwid-tabs__nav-link` / `.wp-block-getwid-tabs__tab-content`) holding labelled `Old Testament:` and `Psalm:` paragraphs; the epistle and gospel sit outside the tabs and belong to both tracks. Emit `tracks: null` when the page has no tabs (Sundays with a single set of readings) or can't be read. A study page prints only the track its author used, so the lectionary page is the only source that has both.
+8. Convert bold labels ending with `|` into section headings. Examples: `Opening Prayer |`, `Context |`, `Theological Reflection |`, `Reflection Questions |`, `Faith in Practice |`.
+9. Preserve paragraphs, emphasis, and unordered lists inside each section.
+10. Stop parsing when reaching downloads, categories, language switcher, podcast subscription, contact block, donation block, or footer navigation.
+11. Extract PDF and Word download links separately.
 
 Use an HTML parser instead of regular expressions for the main parse. Recommended packages for a Node-based function:
 

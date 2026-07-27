@@ -716,7 +716,7 @@ function renderStudyArticle(o,data,accent,original){
     `<a class="pill-link" href="${escapeAttr(download.url)}" target="_blank" rel="noopener">${escapeHtml(download.label)}</a>`
   ).join("");
   const author = data.author ? ` by ${data.authorUrl?`<a href="${escapeAttr(data.authorUrl)}" target="_blank" rel="noopener">${escapeHtml(data.author)}</a>`:escapeHtml(data.author)}` : "";
-  const readings = data.readings ? renderReadingsCard(data.readings,data.lectionaryUrl,o.season) : "";
+  const readings = data.readings ? renderReadingsCard(data.readings,data.lectionaryUrl,o.season,data.tracks) : "";
   const image = data.image&&data.image.src ? `<img class="hero-image" src="${escapeAttr(data.image.src)}" alt="${escapeAttr(data.image.alt||"")}" loading="lazy">` : "";
   const sections = (data.sections||[]).map(section=>renderSection(section,data.author)).join("");
 
@@ -768,9 +768,9 @@ function renderAuthorBio(block){
   return `<aside class="author-card"><h2>About the author</h2><p>${renderRichText(block.text||"")}</p></aside>`;
 }
 
-function renderReadingsCard(readings,lectionaryUrl,season){
+function renderReadingsCard(readings,lectionaryUrl,season,lectionaryTracks){
   const cleaned = readings.replace(/^\[?RCL\]?\s*:?\s*/i,"").trim();
-  const tracks = season==="pentecost" ? splitTracks(cleaned) : null;
+  const tracks = usableTracks(lectionaryTracks) || (season==="pentecost" ? splitTracks(cleaned) : null);
   const body = tracks ? renderTrackedReadings(tracks) : renderFlatReadings(cleaned);
   return `<div class="readings-card">
     <span class="readings-title">Readings</span>
@@ -785,8 +785,15 @@ function renderFlatReadings(cleaned){
   return `<div class="readings-list">${rendered}</div>`;
 }
 
-/* During the Season after Pentecost the RCL appoints two tracks. The scraped line
-   interleaves them as: T1-OT; T1-Psalm or T2-OT [or T2-OT-alt]; T2-Psalm; Epistle; Gospel.
+/* Tracks parsed from the lectionary page (see loadTracks in api/study.js). */
+function usableTracks(tracks){
+  if(!tracks || !Array.isArray(tracks.one) || !Array.isArray(tracks.two)) return null;
+  if(!tracks.one.length || !tracks.two.length) return null;
+  return {one:tracks.one, two:tracks.two, shared:Array.isArray(tracks.shared)?tracks.shared:[]};
+}
+
+/* Fallback for when the lectionary page is unreachable: some study pages print both
+   tracks interleaved as T1-OT; T1-Psalm or T2-OT [or T2-OT-alt]; T2-Psalm; Epistle; Gospel.
    The pivot is the psalm segment that carries an "or" leading to a non-psalm book.
    Returns null when the line doesn't match that shape (fall back to flat rendering). */
 function splitTracks(text){
@@ -815,8 +822,7 @@ function renderTrackedReadings(tracks){
     </div>
     <div class="track-panel${active==="one"?"":" is-hidden"}" data-panel="one">${group(tracks.one)}</div>
     <div class="track-panel${active==="two"?"":" is-hidden"}" data-panel="two">${group(tracks.two)}</div>
-    <span class="readings-group-label">Both tracks</span>
-    ${group(tracks.shared)}
+    ${tracks.shared.length?`<span class="readings-group-label">Both tracks</span>${group(tracks.shared)}`:""}
     <p class="track-note">Two tracks of readings are appointed during the Season after Pentecost. St. John&rsquo;s follows Track One this year.</p>`;
 }
 
@@ -991,6 +997,7 @@ function renderPassage(data){
 /* ---------- About page ---------- */
 const REPO_URL = "https://github.com/sirkitree/episcopal-bible-study";
 const RELEASES = [
+  {date:"Jul 2026", note:"Track One and Track Two readings now come from the lectionary itself, so both tracks appear on every Sunday in the Season after Pentecost."},
   {date:"Jul 2026", note:"App icon and web manifest, so the app can be added to a phone home screen. Branded link previews when sharing the URL."},
   {date:"Jul 2026", note:"Track One / Track Two grouping for readings in the Season after Pentecost, and scripture lookup for Apocrypha references."},
   {date:"Jun 2026", note:"First release: studies organized by liturgical season with the current week highlighted, in-app study reader, and tap-to-read scripture."},

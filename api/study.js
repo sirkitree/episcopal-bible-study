@@ -3,6 +3,7 @@ import * as cheerio from "cheerio";
 const SOURCE_HOST = "www.episcopalchurch.org";
 const CACHE_OK = "public, s-maxage=1800, stale-while-revalidate=86400";
 const CACHE_MISS = "public, s-maxage=300, stale-while-revalidate=1800";
+const READING_LABEL = /^(Old Testament|First Reading|Psalm|Canticle|Epistle|Second Reading|Gospel)\s*:\s*(.+)$/i;
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -29,9 +30,10 @@ export default async function handler(req, res) {
 
     const html = await fetchText(resolved);
     const study = parseStudy(html, resolved);
+    const tracks = await loadTracks(study.lectionaryUrl);
 
     res.setHeader("Cache-Control", CACHE_OK);
-    res.status(200).json({ ok: true, ...study });
+    res.status(200).json({ ok: true, ...study, tracks });
   } catch (error) {
     res.setHeader("Cache-Control", CACHE_MISS);
     res.status(500).json({ ok: false, error: error.message || "Unable to load study" });
@@ -150,6 +152,65 @@ function parseStudy(html, sourceUrl) {
     }
     return current;
   }
+}
+
+/* During the Season after Pentecost the RCL appoints two tracks of Old Testament and
+   psalm readings, but a bible-study page prints only the track its author used. The
+   lectionary page for the same Sunday carries both, as a pair of labelled tabs, so the
+   tracks are read from there. Returns null for Sundays with a single set of readings
+   (no tabs) and whenever the lectionary page can't be read, which leaves the client
+   rendering the study's own flat list of readings. */
+async function loadTracks(lectionaryUrl) {
+  if (!lectionaryUrl) return null;
+
+  try {
+    return parseTracks(await fetchText(lectionaryUrl));
+  } catch {
+    return null;
+  }
+}
+
+function parseTracks(html) {
+  const $ = cheerio.load(html);
+  const content = $("div.entry-content").first();
+  const tabs = content.find(".wp-block-getwid-tabs").first();
+  if (!tabs.length) return null;
+
+  const navs = tabs.find(".wp-block-getwid-tabs__nav-link").map((_, el) => cleanText($(el).text())).get();
+  const panels = tabs.find(".wp-block-getwid-tabs__tab-content").toArray();
+  const track = number => {
+    const index = navs.findIndex(nav => new RegExp(`^track\\s*${number}\\b`, "i").test(nav));
+    return index >= 0 && panels[index] ? readingRefs($, $(panels[index])) : [];
+  };
+
+  const one = track(1);
+  const two = track(2);
+  if (!one.length || !two.length) return null;
+
+  // Epistle and gospel sit outside the tabs: both tracks share them.
+  return { one, two, shared: readingRefs($, content, true) };
+}
+
+function readingRefs($, scope, skipTabs) {
+  const refs = [];
+
+  scope.find("p").each((_, el) => {
+    const paragraph = $(el);
+    if (skipTabs && paragraph.closest(".wp-block-getwid-tabs").length) return;
+    if (!paragraph.children("strong, b").length) return;
+
+    const match = cleanText(paragraph.text()).match(READING_LABEL);
+    if (match) refs.push(normalizeReadingRef(match[1], match[2]));
+  });
+
+  return refs;
+}
+
+// Some entries drop the book from a psalm ("Psalm: 145:10-19") or space out the chapter
+// colon ("Psalm 17: 1-7"); both break the client's scripture-reference detection.
+function normalizeReadingRef(label, ref) {
+  const tidy = ref.replace(/(\d)\s*:\s*(\d)/g, "$1:$2").trim();
+  return /^psalm/i.test(label) && /^\d/.test(tidy) ? `Psalm ${tidy}` : tidy;
 }
 
 function collectArticleNodes($, titleEl) {
