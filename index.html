@@ -1419,7 +1419,7 @@ function renderLibraryIndex(){
       const a = 16 + (i%4)*5, b = 38 + (i%4)*5;
       return `
       <li>
-        <a class="book" href="${escapeAttr(bookHash(book))}"
+        <a class="book" href="${escapeAttr(book.chapters===1 ? chapterHash(book,1) : bookHash(book))}"
            style="--accent:${bookAccent(book)};--tint-a:${a}%;--tint-b:${b}%">
           <span class="book-cover">
             <span class="book-cover-title">${escapeHtml(book.abbr)}</span>
@@ -1471,6 +1471,12 @@ async function renderBookPage(id){
 
   if(error){ listEl.innerHTML = shell(`<p class="library-intro">${escapeHtml(error)}</p>`); return; }
 
+  if(data.chapters.length===1){
+    history.replaceState("",document.title,location.pathname+location.search+chapterHash(book,data.chapters[0].number));
+    renderChapter(id, data.chapters[0].number);
+    return;
+  }
+
   const note = data.book.note ? `<p class="library-intro">${escapeHtml(data.book.note)}</p>` : "";
   const about = `<div class="reading-nav" style="margin:0 0 4px">
       <a class="pill-btn" href="${escapeAttr(bookHash(book))}/about">About this book</a>
@@ -1497,7 +1503,8 @@ async function renderChapter(id, n){
   const shell = inner =>
     `<div class="library-page library-reading" style="--accent:${accent}">${inner}</div>`;
 
-  setLibraryHeader(`${book.name} ${n}`, bookHash(book));
+  const soleChapter = book.chapters===1;
+  setLibraryHeader(soleChapter ? book.name : `${book.name} ${n}`, soleChapter ? "#library" : bookHash(book));
   listEl.innerHTML = shell(`<p>Loading&hellip;</p>`);
   window.scrollTo({top:0});
 
@@ -1512,7 +1519,13 @@ async function renderChapter(id, n){
   const chapter = data.chapters[index];
   const single = data.chapters.length===1;
 
-  setLibraryHeader(single ? book.name : `${book.name} ${chapter.number}`, bookHash(book));
+  setLibraryHeader(single ? book.name : `${book.name} ${chapter.number}`, single ? "#library" : bookHash(book));
+
+  const about = single
+    ? `<div class="reading-nav" style="margin:0 0 18px">
+         <a class="pill-btn" href="${escapeAttr(bookHash(book))}/about">About this book</a>
+       </div>`
+    : "";
 
   const prev = data.chapters[index-1], next = data.chapters[index+1];
   const nav = single ? "" : `
@@ -1535,6 +1548,7 @@ async function renderChapter(id, n){
 
   const p = data.provenance;
   listEl.innerHTML = shell(`
+    ${about}
     ${verses}
     ${nav}
     <p class="attribution">${escapeHtml(p.edition)} &mdash; ${escapeHtml(p.rights)}, via

@@ -395,6 +395,8 @@ The brand header, year pager, colour key and footer all belong to the lectionary
 
 The tab bar is hidden while the verse panel is open, since on phones that panel is a bottom sheet and would collide.
 
+Eleven of the twenty-five books hold a single chapter — Susanna, the Prayer of Manasseh, the gospels of Thomas, Mary, Philip and Judas, and the rest. For those the book page has nothing to choose: no chapter grid, only a button. So their Library cards link straight to the text, a deep link to their book page redirects there, and the reading view carries the essay link and returns to the Library index instead of to a page nothing points at. Books with real chapters keep the intermediate page, because there the grid is the point.
+
 ### Presentation
 
 Book covers are generated from CSS rather than shipped as images: each is an accent-tinted panel carrying the book's scholarly siglum (`Tob`, `Sir`, `1 Mac`), with a spine rule down the left edge and the tint varied slightly per position so a grid of them doesn't read flat. This costs no assets, adapts to dark mode for free, and sits naturally beside the season cards on the Home side. A `cover` field is reserved in the manifest for real artwork later.
