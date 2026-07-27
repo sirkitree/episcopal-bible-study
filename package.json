@@ -2,7 +2,7 @@
   "type": "module",
   "scripts": {
     "dev": "node server.js",
-    "check": "node --check api/study.js && node --check api/passage.js && node --check server.js"
+    "check": "node --check api/apoc.js && node --check api/study.js && node --check api/passage.js && node --check server.js"
   },
   "dependencies": {
     "cheerio": "^1.0.0"

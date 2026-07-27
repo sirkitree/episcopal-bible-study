@@ -3,6 +3,7 @@ import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
+import apocHandler from "./api/apoc.js";
 import passageHandler from "./api/passage.js";
 import studyHandler from "./api/study.js";
 
@@ -29,6 +30,11 @@ createServer(async (request, response) => {
 
   if (url.pathname === "/api/passage") {
     await passageHandler(toVercelRequest(request, url), toVercelResponse(response));
+    return;
+  }
+
+  if (url.pathname === "/api/apoc") {
+    await apocHandler(toVercelRequest(request, url), toVercelResponse(response));
     return;
   }
 

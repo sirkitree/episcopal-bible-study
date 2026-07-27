@@ -24,7 +24,9 @@ The official studies are excellent, but finding the right week and reading it co
 
   <img src="docs/screenshots/study-article.png" width="300" alt="A rendered study with readings and attribution">
 
-- **Deliberately simple.** No build step, no client framework — a single static `index.html` plus two small serverless functions. That keeps it cheap to run and easy to maintain.
+- **A library of the Apocrypha.** Alongside the weekly studies, the app carries eleven deuterocanonical books — Tobit, Judith, Wisdom, Sirach, Baruch, 1 and 2 Maccabees, Susanna, Bel and the Dragon, the Prayer of Azariah, and the Additions to Esther — in public-domain translations, each with a scholarly essay on its origins, manuscripts, and canonical status. The texts come live from the [apoc](https://github.com/sirkitree/apoc) collection.
+
+- **Deliberately simple.** No build step, no client framework — a single static `index.html` plus three small serverless functions. That keeps it cheap to run and easy to maintain.
 
 ## How it works
 
@@ -32,10 +34,11 @@ The official studies are excellent, but finding the right week and reading it co
 | --- | --- |
 | `index.html` | The whole client: liturgical-calendar math, season grouping, article rendering, and the scripture lookup UI, in vanilla JS and CSS custom properties. No build step. |
 | `api/study.js` | Fetches a study page from `episcopalchurch.org`, parses the article with [cheerio](https://cheerio.js.org/), and returns sanitized structured JSON. Falls back to discovering the detail URL from the season hub page when a dated URL isn't published yet. |
-| `api/passage.js` | Looks up scripture text via [bible-api.com](https://bible-api.com/) (World English Bible, public domain) for the tap-to-read panel. |
+| `api/passage.js` | Looks up scripture text via [bible-api.com](https://bible-api.com/) (World English Bible, public domain) for the tap-to-read panel. Verifies that the book returned is the book asked for, since the upstream resolves unknown names to the nearest match instead of erroring. |
+| `api/apoc.js` | Serves the Library from the [apoc](https://github.com/sirkitree/apoc) corpus at a pinned commit, parsing each book's markdown into chapters and verses, and each book's README into a typed essay. |
 | `server.js` | A tiny Node HTTP server that serves the static file and routes `/api/*` to the handlers, so the Vercel functions can be run locally without Vercel. |
 
-Only `www.episcopalchurch.org` is allowlisted as a source host, and parsed content is returned as typed JSON blocks rather than raw HTML. See [`design.md`](design.md) for the full design notes.
+Each handler allowlists exactly one upstream host as a constant in its own file — `www.episcopalchurch.org` for studies, `raw.githubusercontent.com` (pinned to a single commit of one repository) for the Library, bible-api.com for verse lookups — and parsed content is returned as typed JSON blocks rather than raw HTML. The Library client sends only a book id from a server-side allowlist, never a path or URL. See [`design.md`](design.md) for the full design notes.
 
 ## Run locally
 
@@ -59,6 +62,6 @@ vercel --prod # production
 
 ## Attribution & content
 
-The Bible studies are written and published by [The Episcopal Church](https://www.episcopalchurch.org/bible-study/) and remain their work — this app only reformats and links to them, and preserves author and source links throughout. Scripture text shown in the lookup panel is the World English Bible (public domain) via bible-api.com.
+The Bible studies are written and published by [The Episcopal Church](https://www.episcopalchurch.org/bible-study/) and remain their work — this app only reformats and links to them, and preserves author and source links throughout. Scripture text shown in the lookup panel is the World English Bible (public domain) via bible-api.com. The Library's texts and essays come from the [apoc](https://github.com/sirkitree/apoc) collection: the translations are public domain (King James with Apocrypha, Douay-Rheims, and the World English Bible), and every reading and essay view names its edition and links the exact source file.
 
 The application code in this repository is released under the [MIT License](LICENSE).
