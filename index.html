@@ -453,6 +453,8 @@
     border-bottom:1px solid var(--border);
   }
   .study-section th{font-weight:800;color:var(--accent,var(--brand));white-space:nowrap}
+  .section-title{font-size:1rem;font-weight:800;margin:1.6rem 0 .35rem;line-height:1.3;
+    color:color-mix(in srgb, var(--accent,var(--brand)) 78%, var(--text))}
   .essay-standfirst{font-size:1.08rem;line-height:1.6;color:var(--text-muted);margin:2px 0 4px}
   .prayer-card,.question-card,.practice-card,.author-card{padding:15px;border-radius:12px;margin-top:28px;border:1px solid var(--border);background:var(--surface-2)}
   .prayer-card{font-style:italic;background:color-mix(in srgb,var(--accent,var(--brand)) 6%,var(--surface))}
@@ -1302,6 +1304,21 @@ const LIBRARY = [
   { id:"jubilees", abbr:"Jub", name:"Jubilees", group:"pseudep", chapters:50,
     blurb:"Genesis and Exodus retold on a calendar of jubilees, dictated to Moses on Sinai." },
 
+  { id:"life-of-adam-and-eve", abbr:"AdEv", name:"Life of Adam and Eve", group:"pseudep", chapters:43,
+    blurb:"What Adam and Eve did after Eden: penance in the rivers, Eve's account of the fall, and Adam's death." },
+  { id:"testament-of-solomon", abbr:"TSol", name:"Testament of Solomon", group:"pseudep", chapters:1,
+    blurb:"Solomon interrogates the demons who built the Temple, each naming the angel that thwarts it." },
+
+  { id:"gospel-of-james", abbr:"Jas", name:"Gospel of James", group:"ntapoc", chapters:1,
+    blurb:"The birth and childhood of Mary, and the source of much later devotion to her." },
+  { id:"gospel-of-thomas", abbr:"Thom", name:"Gospel of Thomas", group:"ntapoc", chapters:1,
+    blurb:"One hundred and fourteen sayings of Jesus, with no narrative and no passion. Found at Nag Hammadi in 1945." },
+  { id:"gospel-of-mary", abbr:"Mary", name:"Gospel of Mary", group:"ntapoc", chapters:1,
+    blurb:"Mary Magdalene relays a vision to the disciples, and Peter refuses to believe her." },
+  { id:"gospel-of-philip", abbr:"Phil", name:"Gospel of Philip", group:"ntapoc", chapters:1,
+    blurb:"Meditations on sacrament, marriage and resurrection from the Nag Hammadi library." },
+  { id:"gospel-of-judas", abbr:"Jud", name:"Gospel of Judas", group:"ntapoc", chapters:1,
+    blurb:"Jesus takes Judas aside and tells him he will exceed all the rest. Recovered in 2006." },
   { id:"acts-of-paul-and-thecla", abbr:"Thec", name:"Acts of Paul and Thecla", group:"ntapoc", chapters:1,
     blurb:"Thecla leaves her betrothal to follow Paul, and survives both the fire and the beasts." }
 ];
@@ -1505,8 +1522,16 @@ async function renderChapter(id, n){
       ${next ? `<a class="pill-btn" href="${escapeAttr(chapterHash(book,next.number))}">${next.number} &rsaquo;</a>` : ""}
     </div>`;
 
-  const verses = chapter.verses.map(verse=>
-    `<p class="verse-line"><span class="verse-num">${verse.verse}</span>${escapeHtml(verse.text)}</p>`).join("");
+  // Some texts are divided into named sections rather than numbered verses, and
+  // some carry both (Thomas's sayings). Show whichever the text actually has.
+  const verses = chapter.verses.map(verse=>{
+    const heading = verse.title
+      ? `<h3 class="section-title">${verse.verse!=null?`${verse.verse}. `:""}${escapeHtml(verse.title)}</h3>`
+      : "";
+    const num = (!verse.title && verse.verse!=null)
+      ? `<span class="verse-num">${verse.verse}</span>` : "";
+    return `${heading}<p class="verse-line">${num}${escapeHtml(verse.text)}</p>`;
+  }).join("");
 
   const p = data.provenance;
   listEl.innerHTML = shell(`

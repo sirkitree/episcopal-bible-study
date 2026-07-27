@@ -24,7 +24,7 @@ The official studies are excellent, but finding the right week and reading it co
 
   <img src="docs/screenshots/study-article.png" width="300" alt="A rendered study with readings and attribution">
 
-- **A library of the Apocrypha.** Alongside the weekly studies, the app carries eleven deuterocanonical books — Tobit, Judith, Wisdom, Sirach, Baruch, 1 and 2 Maccabees, Susanna, Bel and the Dragon, the Prayer of Azariah, and the Additions to Esther — in public-domain translations, each with a scholarly essay on its origins, manuscripts, and canonical status. The texts come live from the [apoc](https://github.com/sirkitree/apoc) collection.
+- **A library of the Apocrypha.** Alongside the weekly studies, the app carries twenty-five apocryphal texts in public-domain translations — the fourteen deuterocanonical books, the pseudepigrapha (1 and 2 Enoch, Jubilees, the Life of Adam and Eve, the Testament of Solomon), and the New Testament apocrypha (the gospels of Thomas, Mary, Philip, Judas and James, and the Acts of Paul and Thecla) — each with a scholarly essay on its origins, manuscripts, and canonical status. The texts come live from the [apoc](https://github.com/sirkitree/apoc) collection.
 
 - **Deliberately simple.** No build step, no client framework — a single static `index.html` plus three small serverless functions. That keeps it cheap to run and easy to maintain.
 

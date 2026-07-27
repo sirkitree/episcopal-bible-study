@@ -409,15 +409,19 @@ The corpus publishes `books.json`, a manifest giving every text's directory, REA
 
 Where a manifest book holds several primary files they are separate compositions rather than alternative editions, so the Library lists them separately — the Additions to Daniel appear as Susanna, Bel and the Dragon, and the Prayer of Azariah, all sharing one essay.
 
-`FORMAT_PARSERS` maps manifest format names to parsers, so a format the Library cannot yet render fails loudly with a 501 instead of producing a mangled text. Five parsers cover 18 of the corpus's 24 texts:
+`FORMAT_PARSERS` maps manifest format names to parsers, so a format the Library cannot yet render fails loudly with a 501 instead of producing a mangled text. Seven parsers cover every text in the corpus but one:
 
 - `verseLines` — `Chapter 1` headings with one verse per line as `1 <text>`. Single-chapter books carry no heading, so verses seen before one open chapter 1.
 - `colonLines` — one verse per line as `1:1 <text>`.
 - `douayRheims` — Project Gutenberg text, verses as blank-line separated paragraphs opening `1:1. `. Editorial footnotes sit between verses as ordinary paragraphs and are dropped by not matching the marker.
 - `cvParagraphs` — R. H. Charles's Enoch and Jubilees, verses as paragraphs opening `1:1 `. A verse may carry continuation lines indented four spaces preserving his poetic layout; those belong to the verse and are folded in. A continuation of the form `[<witness>: ...]` is apparatus, a parallel recension, and is dropped — while Charles's own square brackets around restored text carry no witness label and so survive.
 - `numberedParagraphs` — a text with no chapters, divided only into numbered sections. The whole book becomes one chapter whose verses are those sections, which is what a work read straight through wants and needs no schema change.
+- `cvParagraphsRanged` — as `cvParagraphs`, but a marker may name a range where the printed edition numbers two verses together, and the body is delimited by rules of equals signs.
+- `sectionedProse` — prose divided into named sections rather than numbered verses: the Mattison translations of Thomas, Mary, Philip and Judas. The heading pattern differs from one translation to the next, so it is read from the manifest per file rather than guessed. Sections become the verses of a single chapter, each carrying a title. Where the heading is numbered — Thomas's sayings — that number is used; an unnumbered section such as Thomas's Prologue keeps a null number and the reader shows no numeral. A trailing heading with no prose beneath it is the ancient colophon repeating the work's title, not a section, and is dropped.
 
-The six texts not yet served are blocked upstream rather than here: one file is not valid UTF-8, one does not match its declared format, and the `sectioned-prose` and `prose-with-apparatus` format specs do not describe enough structure to split the text. Those are tracked as issues on the corpus repository.
+Two rules make this safe to leave running. Where the manifest states how many sections a file holds, the parse is held to that count and a mismatch is refused: a count that drifts means the heading pattern stopped matching the file. And where a text's edition of record cannot be addressed by verse — the Apocalypse of Moses sets its chapter and verse numbers inside the running prose — the manifest names a mechanically derived rendering in `derivedFile`, which is read instead while the edition of record's provenance is kept, since no word of the translation differs.
+
+The one text still not served is the Apocalypse of Peter, where M. R. James's introduction, his notes and the translations he prints are interleaved with no marker between them and no derived rendering yet.
 
 Chapters are driven by the verse markers rather than the chapter headings, because the Sirach source was for a time missing its `Ecclesiasticus Chapter 48` heading even though all 28 of that chapter's verses were present. `verseLines` opens a chapter implicitly only when a file carries no chapter headings anywhere, since otherwise a title line reading `1 ESDRAS` matches the verse shape and manufactures a spurious chapter 1 ahead of the real one.
 

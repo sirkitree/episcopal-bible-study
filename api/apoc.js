@@ -7,7 +7,7 @@ const CACHE_OK = "public, max-age=0, s-maxage=604800, stale-while-revalidate=259
 
 const RAW_HOST = "raw.githubusercontent.com";
 const CORPUS_REPO = "sirkitree/apoc";
-const CORPUS_REF = "a01aa02dd53e22b449e5e31e2f08ae979cdc8da1";
+const CORPUS_REF = "034968a23db52c201cc1ab3f4874a6729a06992b";
 const CORPUS_HOME = `https://github.com/${CORPUS_REPO}`;
 const MAX_BYTES = 1_500_000;
 
@@ -39,7 +39,14 @@ const LIBRARY_BOOKS = {
   "1-enoch":                 { manifestId: "1-enoch" },
   "2-enoch":                 { manifestId: "2-enoch" },
   "jubilees":                { manifestId: "jubilees" },
-  "acts-of-paul-and-thecla": { manifestId: "acts-of-paul-and-thecla" }
+  "acts-of-paul-and-thecla": { manifestId: "acts-of-paul-and-thecla" },
+  "testament-of-solomon":    { manifestId: "testament-of-solomon" },
+  "life-of-adam-and-eve":    { manifestId: "life-of-adam-and-eve" },
+  "gospel-of-james":         { manifestId: "gospel-of-james" },
+  "gospel-of-thomas":        { manifestId: "gospel-of-thomas" },
+  "gospel-of-mary":          { manifestId: "gospel-of-mary" },
+  "gospel-of-philip":        { manifestId: "gospel-of-philip" },
+  "gospel-of-judas":         { manifestId: "gospel-of-judas" }
 };
 
 // Manifest format name -> parser. A format absent from this map is one the
@@ -52,7 +59,9 @@ const FORMAT_PARSERS = {
   "chapter-caps-cv-lines": "colonLines",
   "gutenberg-douay-rheims": "douayRheims",
   "cv-paragraphs": "cvParagraphs",
-  "numbered-paragraphs": "numberedParagraphs"
+  "cv-paragraphs-ranged": "cvParagraphsRanged",
+  "numbered-paragraphs": "numberedParagraphs",
+  "sectioned-prose": "sectionedProse"
 };
 
 // CORPUS_REF is immutable, so the manifest can be memoised for the life of the
@@ -79,10 +88,21 @@ async function resolve(key) {
   if (!book) throw new Error(`The corpus no longer lists ${wanted.manifestId}.`);
 
   const candidates = (book.files || []).filter(file => file.primary && file.scripture);
-  const file = wanted.file
+  let file = wanted.file
     ? candidates.find(entry => entry.path.endsWith("/" + wanted.file))
     : candidates[0];
   if (!file) throw new Error(`No primary text for ${wanted.manifestId} in the corpus.`);
+
+  // Some editions of record can't be addressed by verse — their chapter and verse
+  // numbers run inside the prose. Where the corpus publishes a mechanically
+  // derived rendering that can be, read that instead, but keep the edition of
+  // record's provenance since no word of the translation differs.
+  if (!FORMAT_PARSERS[file.format] && file.derivedFile) {
+    const derived = (book.files || []).find(entry => entry.path === file.derivedFile);
+    if (derived && FORMAT_PARSERS[derived.format]) {
+      file = { ...derived, edition: derived.edition || file.edition, translator: derived.translator || file.translator, source: derived.source || file.source, rights: derived.rights || file.rights };
+    }
+  }
 
   return { wanted, book, file, name: wanted.name || book.name };
 }
@@ -137,7 +157,7 @@ async function sendText(res, key, { book, file, name }) {
     return;
   }
 
-  const chapters = parser(await fetchSource(file.path));
+  const chapters = parser(await fetchSource(file.path), file);
 
   // Refuse to serve a book the parser clearly mangled rather than showing
   // someone a half-empty chapter and letting them assume that's the text.
@@ -152,13 +172,28 @@ async function sendText(res, key, { book, file, name }) {
     return;
   }
 
+  // Where the manifest states how many sections a file holds, hold the parse to
+  // it: a count that drifts means the heading pattern stopped matching the file,
+  // and a silently short text is the failure worth catching.
+  const expected = file.structure?.sections;
+  const parsed = chapters.reduce((total, chapter) => total + chapter.verses.length, 0);
+  if (typeof expected === "number" && parsed !== expected) {
+    res.setHeader("Cache-Control", CACHE_MISS);
+    res.status(502).json({ ok: false, error: `Expected ${expected} sections in this text but read ${parsed}.` });
+    return;
+  }
+
   res.setHeader("Cache-Control", CACHE_OK);
   res.status(200).json({
     ok: true,
     book: { id: key, name, note: book.note || "" },
     chapters: chapters.map(chapter => ({
       number: chapter.number,
-      verses: chapter.verses.map(verse => ({ verse: verse.verse, text: verse.text }))
+      verses: chapter.verses.map(verse => ({
+        verse: verse.verse ?? null,
+        title: verse.title || "",
+        text: verse.text
+      }))
     })),
     provenance: provenanceOf(file)
   });
@@ -404,10 +439,72 @@ function parseNumberedParagraphs(text) {
   return verses.length ? [{ number: 1, verses }] : [];
 }
 
+// The body of a sectioned file is delimited by rules of 70+ equals signs: the
+// translator's front matter stands before the first and their notes after the
+// second, and neither is part of the text.
+function bodyLines(text) {
+  const lines = text.split(/\r?\n/);
+  const rules = [];
+  lines.forEach((line, i) => { if (/^={70,}$/.test(line.trim())) rules.push(i); });
+  if (!rules.length) return lines;
+  return lines.slice(rules[0] + 1, rules.length > 1 ? rules[1] : lines.length);
+}
+
+// Prose divided into named sections rather than numbered verses — the Mattison
+// translations of Thomas, Mary, Philip and Judas. The heading pattern differs per
+// translation, so it comes from the manifest rather than being guessed. Sections
+// become the verses of a single chapter, carrying a title; where the heading is
+// numbered (Thomas's sayings) that number is used, and an unnumbered section such
+// as Thomas's Prologue keeps a null number so the reader shows no numeral.
+function parseSectionedProse(text, file) {
+  const structure = file.structure || {};
+  if (!structure.sectionHeading) return [];
+  const isHeading = new RegExp(structure.sectionHeading);
+  const numbered = structure.sectionNumber ? new RegExp(structure.sectionNumber) : null;
+
+  const sections = [];
+  let current = null;
+  for (const raw of bodyLines(text)) {
+    const line = raw.trim();
+    if (!line || /^[-=]{3,}$/.test(line)) continue;
+    if (isHeading.test(line)) {
+      const found = numbered && line.match(numbered);
+      current = { number: found ? Number(found[1]) : null, title: line, lines: [] };
+      sections.push(current);
+      continue;
+    }
+    if (current) current.lines.push(line);
+  }
+
+  // A trailing heading with no prose under it is the ancient colophon repeating
+  // the work's title, not a section.
+  while (sections.length && !sections[sections.length - 1].lines.length) sections.pop();
+
+  const verses = sections.map(section => ({
+    verse: section.number,
+    // Strip the numbering from a numbered heading; the number is shown already.
+    title: numbered ? section.title.replace(numbered, "").trim() || section.title : section.title,
+    text: cleanText(section.lines.join(" "))
+  })).filter(verse => verse.text);
+
+  return verses.length ? [{ number: 1, verses }] : [];
+}
+
+// As cvParagraphs, but a marker may name a range where the printed edition
+// numbers two verses together, and the body is delimited.
+function parseCvParagraphsRanged(text, file) {
+  const blocks = bodyLines(text).join("\n").split(/\n\s*\n/).map(block =>
+    block.split(/\r?\n/).filter(line => !APPARATUS.test(line)).join("\n"));
+  const chapters = collectByMarker(blocks, /^(\d{1,3}):(\d{1,3})(?:-\d{1,3})?\s+([\s\S]+)$/);
+  return chapters;
+}
+
 const PARSERS = {
   verseLines: parseVerseLines,
   colonLines: parseColonLines,
   douayRheims: parseDouayRheims,
   cvParagraphs: parseCvParagraphs,
-  numberedParagraphs: parseNumberedParagraphs
+  numberedParagraphs: parseNumberedParagraphs,
+  sectionedProse: parseSectionedProse,
+  cvParagraphsRanged: parseCvParagraphsRanged
 };
