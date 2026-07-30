@@ -13,7 +13,7 @@ const CACHE_INDEX = "public, max-age=0, s-maxage=604800";
 
 const RAW_HOST = "raw.githubusercontent.com";
 const CORPUS_REPO = "sirkitree/apoc";
-const CORPUS_REF = "034968a23db52c201cc1ab3f4874a6729a06992b";
+const CORPUS_REF = "56b94450c094fcd02db375b05aa3b968257411f2";
 const CORPUS_HOME = `https://github.com/${CORPUS_REPO}`;
 const MAX_BYTES = 1_500_000;
 
@@ -50,9 +50,14 @@ const LIBRARY_BOOKS = {
   "life-of-adam-and-eve":    { manifestId: "life-of-adam-and-eve" },
   "gospel-of-james":         { manifestId: "gospel-of-james" },
   "gospel-of-thomas":        { manifestId: "gospel-of-thomas" },
-  "gospel-of-mary":          { manifestId: "gospel-of-mary" },
-  "gospel-of-philip":        { manifestId: "gospel-of-philip" },
-  "gospel-of-judas":         { manifestId: "gospel-of-judas" },
+  // `pageNumbers` marks the texts whose bare inline numbers are manuscript or
+  // codex pages rather than anything to do with the text's own divisions. The
+  // sectioned-prose format says this of all its files, but that does not hold:
+  // the Apocalypse of Peter carries James's own Akhmim verse numbers inline, plus
+  // cross-references to the Greek, so its numbers are marked as neither.
+  "gospel-of-mary":          { manifestId: "gospel-of-mary", pageNumbers: true },
+  "gospel-of-philip":        { manifestId: "gospel-of-philip", pageNumbers: true },
+  "gospel-of-judas":         { manifestId: "gospel-of-judas", pageNumbers: true },
   "apocalypse-of-peter":     { manifestId: "apocalypse-of-peter" }
 };
 
@@ -249,10 +254,7 @@ async function sendText(res, key, { book, file, name }) {
   res.status(200).json({
     ok: true,
     book: { id: key, name, note: book.note || "" },
-    // The sectioned-prose format declares that bare numbers in these texts are
-    // manuscript page numbers rather than verses, so the reader can mark them as
-    // apparatus instead of leaving digits loose in the middle of a sentence.
-    pageNumbers: file.format === "sectioned-prose",
+    pageNumbers: LIBRARY_BOOKS[key].pageNumbers === true,
     chapters: chapters.map(chapter => ({
       number: chapter.number,
       verses: chapter.verses.map(verse => ({
