@@ -439,7 +439,7 @@ A parse yielding no chapters, an empty chapter, or chapter numbers that do not s
 
 Taking in corpus changes is deliberate: bump `CORPUS_REF`, then re-run the book and essay checks for every id in `LIBRARY_BOOKS` and confirm the chapter counts and verse totals are unchanged or explainable.
 
-Essays are parsed from each book directory's `README.md` into the same typed blocks the study reader uses, extended with `heading`, `table` and `quote`. Inline markup is flattened to plain text, since the client escapes everything and only linkifies scripture references — which means references inside an essay become tap-to-read for free.
+Essays are parsed from each book directory's `README.md` into the same typed blocks the study reader uses, extended with `heading`, `table` and `quote`. Each README closes with a listing of the files in its corpus directory — paths, formats and sizes — which is repository housekeeping rather than part of the essay, and is dropped; the reading views already link the exact source file. Inline markup is flattened to plain text, since the client escapes everything and only linkifies scripture references — which means references inside an essay become tap-to-read for free.
 
 ### Verse reference safety
 

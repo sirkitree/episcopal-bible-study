@@ -384,7 +384,17 @@ function parseEssay(markdown) {
   }
   flush();
 
-  return { title, standfirst, sections: sections.filter(entry => entry.blocks.length) };
+  // Every book README closes with a listing of the files in its corpus directory:
+  // paths, formats and sizes. That is repository housekeeping for someone working
+  // on the collection, not part of the essay, and the reading views already link
+  // the exact source file.
+  const HOUSEKEEPING = /^files in this directory$/i;
+
+  return {
+    title,
+    standfirst,
+    sections: sections.filter(entry => entry.blocks.length && !HOUSEKEEPING.test(entry.heading))
+  };
 }
 
 async function fetchSource(path) {
