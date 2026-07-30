@@ -1596,8 +1596,10 @@ async function renderChapter(id, n){
          <a class="pill-btn" href="${escapeAttr(bookHash(book))}/about">About this book</a>
        </div>`
     : "";
-  const pageNote = data.pageNumbers
+  const numberNote = data.inlineNumbers === "page"
     ? `<p class="library-intro" style="margin:0 0 18px">Small numbers are the pages of the manuscript, not verses.</p>`
+    : data.inlineNumbers === "verse"
+    ? `<p class="library-intro" style="margin:0 0 18px">Verse numbers are the translator's, set where he printed them.</p>`
     : "";
 
   const prev = data.chapters[index-1], next = data.chapters[index+1];
@@ -1610,12 +1612,29 @@ async function renderChapter(id, n){
 
   // Some texts are divided into named sections rather than numbered verses, and
   // some carry both (Thomas's sayings). Show whichever the text actually has.
-  // In the Nag Hammadi and Codex Tchacos texts a bare number is the manuscript
-  // page it falls on, not a verse. Mark them so they read as apparatus.
-  const body = text => data.pageNumbers
-    ? escapeHtml(text).replace(/(?<![\w:.-])(\d{1,3})(?![\w:.-])/g,
-        `<span class="page-num" title="Manuscript page $1">$1</span>`)
-    : escapeHtml(text);
+  // A few texts carry loose numbers in the running prose. In the Nag Hammadi and
+  // Codex Tchacos gospels every one is the manuscript page it falls on; in the
+  // Apocalypse of Peter they are the translator's verse numbers, set where he
+  // printed them mid-paragraph. A verse number always opens a clause, which is
+  // what separates it from the cross-references to the Greek sitting alongside.
+  const NUMBER_RULES = {
+    page:  /(?<![\w:.-])(\d{1,3})(?![\w:.-])/g,
+    verse: /(?<![\w:.-])(\d{1,3})(?=\s+[A-Z(])/g
+  };
+  const body = text => {
+    const rule = NUMBER_RULES[data.inlineNumbers];
+    if(!rule) return escapeHtml(text);
+    const kind = data.inlineNumbers==="page"
+      ? { cls:"page-num", label:"Manuscript page" }
+      : { cls:"verse-num", label:"Verse" };
+    let html = "", last = 0;
+    for(const found of text.matchAll(rule)){
+      html += escapeHtml(text.slice(last, found.index));
+      html += `<span class="${kind.cls}" title="${kind.label} ${found[1]}">${found[1]}</span>`;
+      last = found.index + found[1].length;
+    }
+    return html + escapeHtml(text.slice(last));
+  };
 
   const verses = chapter.verses.map(verse=>{
     const heading = verse.title
@@ -1629,7 +1648,7 @@ async function renderChapter(id, n){
   const p = data.provenance;
   listEl.innerHTML = shell(`
     ${about}
-    ${pageNote}
+    ${numberNote}
     ${verses}
     ${nav}
     <p class="attribution">${escapeHtml(p.edition)} &mdash; ${escapeHtml(p.rights)}, via

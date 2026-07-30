@@ -3,13 +3,13 @@ const CACHE_MISS = "public, s-maxage=300, stale-while-revalidate=1800";
 // response for a week. Without it browsers cache heuristically, and because the
 // URL stays the same across a parser change or a CORPUS_REF bump, a reader could
 // be pinned to stale output long after a deploy fixed it.
-const CACHE_OK = "public, max-age=0, s-maxage=604800, stale-while-revalidate=2592000";
-// The index gates every Library view, so it deliberately drops
-// stale-while-revalidate: serving a stale copy here hides a book that was just
-// added from anyone who has visited before. It is under 2 KB, so always
-// revalidating costs a conditional request and nothing more. The CDN still holds
-// it for a week, because the pinned ref means it cannot change under us.
-const CACHE_INDEX = "public, max-age=0, s-maxage=604800";
+// No stale-while-revalidate anywhere here. The pinned ref means a text cannot
+// change under us, so serving a stale body sounds free — but the *shape* of these
+// responses changes whenever this handler is deployed, and a reader holding a
+// stale copy gets one render from a payload the running client no longer
+// understands. Revalidating costs a conditional request; the CDN still holds
+// every response for a week.
+const CACHE_OK = "public, max-age=0, s-maxage=604800";
 
 const RAW_HOST = "raw.githubusercontent.com";
 const CORPUS_REPO = "sirkitree/apoc";
@@ -50,15 +50,15 @@ const LIBRARY_BOOKS = {
   "life-of-adam-and-eve":    { manifestId: "life-of-adam-and-eve" },
   "gospel-of-james":         { manifestId: "gospel-of-james" },
   "gospel-of-thomas":        { manifestId: "gospel-of-thomas" },
-  // `pageNumbers` marks the texts whose bare inline numbers are manuscript or
-  // codex pages rather than anything to do with the text's own divisions. The
-  // sectioned-prose format says this of all its files, but that does not hold:
-  // the Apocalypse of Peter carries James's own Akhmim verse numbers inline, plus
-  // cross-references to the Greek, so its numbers are marked as neither.
-  "gospel-of-mary":          { manifestId: "gospel-of-mary", pageNumbers: true },
-  "gospel-of-philip":        { manifestId: "gospel-of-philip", pageNumbers: true },
-  "gospel-of-judas":         { manifestId: "gospel-of-judas", pageNumbers: true },
-  "apocalypse-of-peter":     { manifestId: "apocalypse-of-peter" }
+  // Some texts carry loose numbers in the running prose, and what they mean
+  // differs per text — so it is declared here rather than inferred from the
+  // format. The sectioned-prose spec calls them all manuscript pages, which is
+  // true of the Nag Hammadi and Codex Tchacos gospels but not of the Apocalypse
+  // of Peter, where they are James's own verse numbers set where he printed them.
+  "gospel-of-mary":          { manifestId: "gospel-of-mary", inlineNumbers: "page" },
+  "gospel-of-philip":        { manifestId: "gospel-of-philip", inlineNumbers: "page" },
+  "gospel-of-judas":         { manifestId: "gospel-of-judas", inlineNumbers: "page" },
+  "apocalypse-of-peter":     { manifestId: "apocalypse-of-peter", inlineNumbers: "verse" }
 };
 
 // The corpus groups its texts into three phases, which are exactly the Library's
@@ -212,7 +212,7 @@ async function sendIndex(res) {
     };
   }));
 
-  res.setHeader("Cache-Control", CACHE_INDEX);
+  res.setHeader("Cache-Control", CACHE_OK);
   res.status(200).json({ ok: true, books: books.filter(Boolean) });
 }
 
@@ -254,7 +254,7 @@ async function sendText(res, key, { book, file, name }) {
   res.status(200).json({
     ok: true,
     book: { id: key, name, note: book.note || "" },
-    pageNumbers: LIBRARY_BOOKS[key].pageNumbers === true,
+    inlineNumbers: LIBRARY_BOOKS[key].inlineNumbers || null,
     chapters: chapters.map(chapter => ({
       number: chapter.number,
       verses: chapter.verses.map(verse => ({
