@@ -45,6 +45,12 @@
     --pentecost:#2e7d52;        /* green (ordinary time) */
     --feast:#b8860b;            /* white/gold feasts */
     --passion:#c0392b;          /* Day of Pentecost red */
+
+    /* Library groups — one accent per corpus division, same role as the
+       season colors: they tint covers, grids and reading views via --accent. */
+    --deutero:#2e6f8e;          /* Deuterocanonical */
+    --pseudep:#8a6220;          /* Pseudepigrapha */
+    --ntapoc:#6a3d9a;           /* New Testament Apocrypha */
   }
   @media (prefers-color-scheme: dark){
     :root{
@@ -65,6 +71,9 @@
       --pentecost:#5fc78c;
       --feast:#e8c25a;
       --passion:#f0808f;
+      --deutero:#6fb3d1;
+      --pseudep:#d3a55a;
+      --ntapoc:#b78fe0;
     }
   }
 
@@ -76,7 +85,8 @@
     background:var(--bg);
     color:var(--text);
     line-height:1.45;
-    padding-bottom:env(safe-area-inset-bottom);
+    /* Clear the fixed tab bar, which sits above the home indicator. */
+    padding-bottom:calc(60px + env(safe-area-inset-bottom));
   }
   body.verse-open{overflow:hidden}
 
@@ -142,6 +152,59 @@
   .swatch{width:14px;height:14px;border-radius:4px;flex:none}
   body.article-mode .toolbar,
   body.article-mode .legend{display:none}
+  /* The year pager only means something on the calendar; the Library is not
+     organised by liturgical year, so the whole control disappears there. */
+  /* The Library has its own plain bar instead of the brand header: the app title,
+     tagline and year pager all belong to the lectionary calendar, not to a
+     bookshelf. */
+  body.library-mode header,
+  body.library-mode .toolbar,
+  body.library-mode .legend{display:none}
+
+  .library-header{
+    display:none;align-items:center;gap:4px;
+    max-width:var(--maxw);margin:0 auto;
+    padding:calc(12px + env(safe-area-inset-top)) 16px 6px;
+  }
+  body.library-mode .library-header{display:flex}
+  .library-back{
+    display:inline-flex;align-items:center;justify-content:center;
+    flex:none;width:38px;height:38px;margin-left:-10px;
+    border-radius:999px;text-decoration:none;
+    color:var(--text);font-size:1.6rem;line-height:1;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .library-back:active{background:var(--surface-2)}
+  .library-title{font-size:1.3rem;font-weight:700;letter-spacing:.2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* The footer explains the lectionary calendar and how studies are published —
+     true on the Home side, irrelevant and confusing next to a book of Sirach. */
+  body.library-mode footer{display:none}
+
+  /* ---------- Tab bar ---------- */
+  .tabbar{
+    position:fixed;left:0;right:0;bottom:0;z-index:20;
+    display:flex;
+    background:color-mix(in srgb, var(--surface) 92%, transparent);
+    -webkit-backdrop-filter:saturate(180%) blur(12px);
+    backdrop-filter:saturate(180%) blur(12px);
+    border-top:1px solid var(--border);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .tab{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    padding:8px 4px 7px;
+    text-decoration:none;color:var(--text-muted);
+    font-size:.72rem;font-weight:600;letter-spacing:.2px;
+    background:none;border:none;cursor:pointer;font-family:inherit;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .tab svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.7;
+    stroke-linecap:round;stroke-linejoin:round;display:block}
+  .tab.is-active{color:var(--brand)}
+  .tab:active{opacity:.6}
+  /* The verse panel is a bottom sheet on phones — it would sit right on top. */
+  body.verse-open .tabbar{display:none}
 
   /* ---------- List ---------- */
   main{max-width:var(--maxw);margin:0 auto;padding:8px 16px 48px}
@@ -206,6 +269,88 @@
   footer{max-width:var(--maxw);margin:0 auto;padding:8px 16px 40px;color:var(--text-muted);font-size:.8rem;text-align:center}
   footer a{color:var(--brand)}
   .footer-about{display:block;margin-top:10px}
+
+  /* ---------- Library ---------- */
+  .library-intro{margin:10px 0 2px;color:var(--text-muted);font-size:.88rem;line-height:1.5}
+
+  ul.books{list-style:none;margin:0;padding:0;display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  @media (min-width:520px){ul.books{grid-template-columns:repeat(5,minmax(0,1fr))}}
+
+  a.book{
+    display:flex;flex-direction:column;gap:7px;
+    text-decoration:none;color:inherit;
+    -webkit-tap-highlight-color:transparent;
+  }
+  a.book:active{transform:scale(.98)}
+  a.book{transition:transform .08s ease}
+
+  /* Typographic covers: no image assets, so each cover is drawn from the book's
+     own accent. The left edge reads as a spine, the rule under the title as a
+     band. Tint depth varies per book via --shade so a grid of them isn't flat. */
+  .book-cover{
+    position:relative;aspect-ratio:3/4;border-radius:10px;overflow:hidden;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:10px 8px;text-align:center;
+    background:
+      linear-gradient(160deg,
+        color-mix(in srgb, var(--accent) var(--tint-a,20%), var(--surface)),
+        color-mix(in srgb, var(--accent) var(--tint-b,42%), var(--surface)));
+    border:1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+    box-shadow:var(--shadow);
+  }
+  .book-cover::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+    background:color-mix(in srgb, var(--accent) 78%, transparent);
+  }
+  /* The cover carries the book's scholarly siglum rather than its full title —
+     the title is already spelled out underneath, and the abbreviation reads as
+     an emblem instead of repeating the label. */
+  .book-cover-title{
+    font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
+    font-size:1.35rem;line-height:1.1;font-weight:600;letter-spacing:.5px;
+    color:color-mix(in srgb, var(--accent) 88%, var(--text));
+  }
+  .book-cover-rule{
+    width:26px;height:2px;border-radius:2px;margin:8px 0 0;
+    background:color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+  /* Name and chapter count share a line under the cover. The name takes the
+     space it needs and wraps; the count stays pinned to the right. */
+  .book-line{display:flex;align-items:baseline;gap:6px}
+  .book-name{flex:1;min-width:0;font-size:.8rem;font-weight:600;line-height:1.25}
+  .book-meta{flex:none;font-size:.72rem;color:var(--text-muted)}
+  @media (hover:hover){ a.book:hover .book-cover{border-color:var(--accent)} }
+
+  /* ---------- Chapter grid ---------- */
+  .library-page{max-width:var(--maxw);margin:0 auto;padding:0 0 48px}
+  .library-page .library-intro{margin:2px 0 16px}
+  /* Reading measure and looser leading for continuous scripture, the same
+     treatment .article-body gives a study. Wider than the viewport on a phone,
+     so it only takes effect on larger screens. */
+  .library-reading{max-width:62ch;line-height:1.6}
+  .chapter-grid{list-style:none;margin:10px 0 0;padding:0;display:grid;
+    grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}
+  @media (min-width:520px){.chapter-grid{grid-template-columns:repeat(9,minmax(0,1fr))}}
+  a.chapter-sq{
+    display:flex;align-items:center;justify-content:center;
+    aspect-ratio:1;border-radius:9px;
+    text-decoration:none;font-weight:700;font-size:.95rem;
+    color:color-mix(in srgb, var(--accent) 80%, var(--text));
+    background:color-mix(in srgb, var(--accent) 9%, var(--surface));
+    border:1px solid color-mix(in srgb, var(--accent) 26%, var(--border));
+    -webkit-tap-highlight-color:transparent;
+    transition:transform .08s ease;
+  }
+  a.chapter-sq:active{transform:scale(.94)}
+  @media (hover:hover){ a.chapter-sq:hover{border-color:var(--accent)} }
+
+  /* ---------- Reading view ---------- */
+  .reading-nav{display:flex;gap:8px;align-items:center;margin-top:20px}
+  .reading-nav .spacer{flex:1}
+  .attribution{margin-top:22px;padding-top:12px;border-top:1px solid var(--border);
+    color:var(--text-muted);font-size:.8rem;line-height:1.5}
+  .attribution a{color:var(--brand)}
 
   /* ---------- About page ---------- */
   .release-list{list-style:none;margin:.75rem 0 0;padding:0}
@@ -294,6 +439,27 @@
   .study-section p{margin:.9rem 0;font-size:1.04rem;line-height:1.72}
   .study-section ul{margin:.75rem 0;padding-left:1.2rem}
   .study-section li{margin:.65rem 0;line-height:1.62}
+  .study-section h3{font-size:.99rem;font-weight:800;margin:1.5rem 0 .3rem;line-height:1.3}
+  .study-section blockquote{
+    margin:1rem 0;padding:2px 0 2px 14px;
+    border-left:3px solid color-mix(in srgb, var(--accent,var(--brand)) 45%, transparent);
+    color:var(--text-muted);font-style:italic;line-height:1.6;
+  }
+  /* Wide tables scroll inside this box so the page body never scrolls sideways. */
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:1rem 0}
+  .study-section table{border-collapse:collapse;font-size:.86rem;min-width:420px;width:100%}
+  .study-section th,.study-section td{
+    text-align:left;padding:7px 14px 7px 0;vertical-align:top;line-height:1.45;
+    border-bottom:1px solid var(--border);
+  }
+  .study-section th{font-weight:800;color:var(--accent,var(--brand));white-space:nowrap}
+  /* Manuscript page markers: superscript like a verse number but muted, so they
+     read as apparatus rather than as part of the text. */
+  .page-num{font-size:.68rem;font-weight:600;color:var(--text-muted);
+    vertical-align:super;margin:0 3px 0 1px;opacity:.75}
+  .section-title{font-size:1rem;font-weight:800;margin:1.6rem 0 .35rem;line-height:1.3;
+    color:color-mix(in srgb, var(--accent,var(--brand)) 78%, var(--text))}
+  .essay-standfirst{font-size:1.08rem;line-height:1.6;color:var(--text-muted);margin:2px 0 4px}
   .prayer-card,.question-card,.practice-card,.author-card{padding:15px;border-radius:12px;margin-top:28px;border:1px solid var(--border);background:var(--surface-2)}
   .prayer-card{font-style:italic;background:color-mix(in srgb,var(--accent,var(--brand)) 6%,var(--surface))}
   .question-card{background:color-mix(in srgb,var(--accent,var(--brand)) 8%,var(--surface));border-color:color-mix(in srgb,var(--accent,var(--brand)) 22%,var(--border))}
@@ -353,6 +519,11 @@
   </div>
 </header>
 
+<div class="library-header" id="libraryHeader">
+  <a class="library-back" id="libraryBack" href="#" aria-label="Back">&lsaquo;</a>
+  <span class="library-title" id="libraryTitle">Library</span>
+</div>
+
 <div class="toolbar">
   <button class="today-btn" id="todayBtn">Jump to this week</button>
   <button class="legend-toggle" id="legendToggle" aria-expanded="false">Color key</button>
@@ -381,6 +552,17 @@
   doesn’t post on its dated scheme) opens that study’s all-years page instead.
   <span class="footer-about"><a href="#about">About this app</a></span>
 </footer>
+
+<nav class="tabbar" id="tabbar" aria-label="Sections">
+  <button class="tab" id="tabHome" type="button">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.2 12 3.5l9 6.7"/><path d="M5.5 9v10.5h13V9"/><path d="M9.8 19.5v-6h4.4v6"/></svg>
+    <span>Home</span>
+  </button>
+  <a class="tab" id="tabLibrary" href="#library">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4.5h6a2 2 0 0 1 2 2v13a1.6 1.6 0 0 0-1.6-1.6H4z"/><path d="M20 4.5h-6a2 2 0 0 0-2 2v13a1.6 1.6 0 0 1 1.6-1.6H20z"/></svg>
+    <span>Library</span>
+  </a>
+</nav>
 
 <script>
 "use strict";
@@ -411,7 +593,17 @@ function setTranslation(code){
 }
 let currentVerseRef = "";
 let verseRequestToken = 0;
-const VERSE_RE = /\b(?:[1-3]\s*)?(?:Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|1\s*Samuel|2\s*Samuel|1\s*Kings|2\s*Kings|1\s*Chronicles|2\s*Chronicles|Ezra|Nehemiah|Esther|Job|Psalms?|Proverbs|Ecclesiastes|Song of Songs|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Wisdom(?:\s+of\s+Solomon)?|Sirach|Ecclesiasticus|Baruch|Judith|Tobit|Matthew|Matt\.?|Mark|Luke|John|Acts|Romans|1\s*Corinthians|2\s*Corinthians|Galatians|Ephesians|Philippians|Colossians|1\s*Thessalonians|2\s*Thessalonians|1\s*Timothy|2\s*Timothy|Titus|Philemon|Hebrews|James|1\s*Peter|2\s*Peter|1\s*John|2\s*John|3\s*John|Jude|Revelation|Rev\.?)\s+\d{1,3}(?::\d{1,3}[a-d]?(?:-\d{1,3}[a-d]?)?)?\b/g;
+// The Library keeps its own request token. Sharing the verse panel's would mean
+// closing a lookup — which bumps that token — abandons an in-flight Library
+// fetch and strands the view on "Loading...".
+let libraryRequestToken = 0;
+// Books listed here become tap-to-read references. The Apocrypha entries are
+// limited to what bible-api.com actually carries, verified by lookup rather than
+// assumed. Deliberately absent: "Song of the Three Holy Children" and "Prayer of
+// Azariah" — the source silently resolves them to the Song of Solomon and the
+// Prayer of Manasses respectively, so linking them would offer the wrong text.
+// api/passage.js rejects both, but leaving them unlinked avoids the dead tap.
+const VERSE_RE = /\b(?:[1-3]\s*)?(?:Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|1\s*Samuel|2\s*Samuel|1\s*Kings|2\s*Kings|1\s*Chronicles|2\s*Chronicles|Ezra|Nehemiah|Esther|Job|Psalms?|Proverbs|Ecclesiastes|Song of Songs|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Wisdom(?:\s+of\s+Solomon)?|Sirach|Ecclesiasticus|Baruch|Judith|Tobit|1\s*Maccabees|2\s*Maccabees|Susanna|Bel\s+and\s+the\s+Dragon|Prayer\s+of\s+Manasseh|1\s*Esdras|2\s*Esdras|Matthew|Matt\.?|Mark|Luke|John|Acts|Romans|1\s*Corinthians|2\s*Corinthians|Galatians|Ephesians|Philippians|Colossians|1\s*Thessalonians|2\s*Thessalonians|1\s*Timothy|2\s*Timothy|Titus|Philemon|Hebrews|James|1\s*Peter|2\s*Peter|1\s*John|2\s*John|3\s*John|Jude|Revelation|Rev\.?)\s+\d{1,3}(?::\d{1,3}[a-d]?(?:-\d{1,3}[a-d]?)?)?\b/g;
 const WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const MO_FULL = ["january","february","march","april","may","june","july","august","september","october","november","december"];
@@ -612,6 +804,8 @@ let viewAdventYear = currentAdventYear();
 
 function render(){
   document.body.classList.remove("article-mode");
+  document.body.classList.remove("library-mode");
+  setActiveTab("home");
   const letter = letterFor(viewAdventYear);
   const items  = buildYear(viewAdventYear);
   const isCurrentCycle = (viewAdventYear === currentAdventYear());
@@ -869,7 +1063,21 @@ function splitReadings(readings){
 
 function renderBlock(block){
   if(block.type==="list") return `<ul>${(block.items||[]).map(item=>`<li>${renderRichText(item)}</li>`).join("")}</ul>`;
+  if(block.type==="heading") return `<h3>${renderRichText(block.text||"")}</h3>`;
+  if(block.type==="quote") return `<blockquote>${renderRichText(block.text||"")}</blockquote>`;
+  if(block.type==="table") return renderTable(block);
   return `<p>${renderRichText(block.text||"")}</p>`;
+}
+
+// Manuscript and canon tables carry real content in the Library essays, so they
+// stay tables rather than being flattened to lists. They scroll inside their own
+// container so a wide table never makes the page scroll sideways.
+function renderTable(block){
+  const headers = (block.headers||[]).map(cell=>`<th>${renderRichText(cell)}</th>`).join("");
+  const rows = (block.rows||[]).map(row=>
+    `<tr>${row.map(cell=>`<td>${renderRichText(cell)}</td>`).join("")}</tr>`).join("");
+  return `<div class="table-scroll"><table>
+    ${headers?`<thead><tr>${headers}</tr></thead>`:""}<tbody>${rows}</tbody></table></div>`;
 }
 
 function renderRichText(value){
@@ -1050,8 +1258,418 @@ function renderAboutPage(){
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
+/* ---------- Library ----------
+   The apocryphal corpus, grouped the way github.com/sirkitree/apoc groups it.
+
+   Text comes from /api/apoc, which reads the corpus repository live at a pinned
+   commit and returns parsed chapters. Each book is one request, cached here for
+   the session, so paging between chapters costs nothing after the first open.
+
+   `chapters` is a display hint for the index cards only — the chapter grid is
+   built from the numbers the API actually returns, which matters for Additions
+   to Esther (chapters 10-16, not 1-7). Every count below came from parsing the
+   real file, not from a reference table. */
+const LIBRARY_GROUPS = [
+  { key:"deutero", name:"Deuterocanonical",          v:"--deutero" },
+  { key:"pseudep", name:"Pseudepigrapha",            v:"--pseudep" },
+  { key:"ntapoc",  name:"New Testament Apocrypha",   v:"--ntapoc"  }
+];
+
+// The Library's running order and the two things the corpus cannot supply: a
+// scholarly siglum for the cover, and a one-line description. Everything else —
+// each book's name, which section it belongs to, and how many chapters it holds —
+// comes from /api/apoc?doc=index, which derives it from the corpus manifest and
+// from parsing the texts. Adding a book here means adding it to LIBRARY_BOOKS in
+// api/apoc.js and writing those two fields; nothing else is restated.
+const LIBRARY_ORDER = [
+  { id:"1-esdras", abbr:"1 Esd",
+    blurb:"The return from exile retold, including the contest of the three young bodyguards before Darius." },
+  { id:"2-esdras", abbr:"2 Esd",
+    blurb:"Apocalyptic visions wrestling with why the righteous suffer and why Zion lies in ruins." },
+  { id:"tobit", abbr:"Tob",
+    blurb:"A family in exile, a perilous journey, and the archangel Raphael travelling in disguise." },
+  { id:"judith", abbr:"Jdt",
+    blurb:"A widow walks into the enemy camp alone and comes back having saved her city." },
+  { id:"additions-to-esther", abbr:"AddEs",
+    blurb:"The Greek expansions to Esther, which name God directly where the Hebrew never does." },
+  { id:"wisdom-of-solomon", abbr:"Wis",
+    blurb:"Alexandrian Judaism meets Greek philosophy: righteousness, immortality, and Wisdom herself." },
+  { id:"sirach", abbr:"Sir",
+    blurb:"Ben Sira's book of practical wisdom, also called Ecclesiasticus. The longest of the Apocrypha." },
+  { id:"baruch", abbr:"Bar",
+    blurb:"Confession and consolation from exile, attributed to Jeremiah's secretary." },
+  { id:"prayer-of-azariah", abbr:"PrAz",
+    blurb:"Three young men sing from inside the furnace, calling all creation to bless the Lord." },
+  { id:"susanna", abbr:"Sus",
+    blurb:"Two elders, a false accusation, and a young Daniel cross-examining the witnesses." },
+  { id:"bel-and-the-dragon", abbr:"Bel",
+    blurb:"Daniel exposes an idol's priests by scattering ash on the temple floor." },
+  { id:"prayer-of-manasseh", abbr:"PrMan",
+    blurb:"Fifteen verses of penitence in the mouth of Judah's worst king, sung as a canticle at Evening Prayer." },
+  { id:"1-maccabees", abbr:"1 Mac",
+    blurb:"The Maccabean revolt told as sober history — the events behind Hanukkah." },
+  { id:"2-maccabees", abbr:"2 Mac",
+    blurb:"The same revolt retold with martyrdoms, and the earliest clear hope of resurrection." },
+  { id:"1-enoch", abbr:"1 En",
+    blurb:"Watchers who fell, a tour of the secrets of heaven, and the Son of Man. Quoted by name in Jude." },
+  { id:"2-enoch", abbr:"2 En",
+    blurb:"Enoch carried up through seven heavens, and returned for thirty days to instruct his sons." },
+  { id:"jubilees", abbr:"Jub",
+    blurb:"Genesis and Exodus retold on a calendar of jubilees, dictated to Moses on Sinai." },
+  { id:"life-of-adam-and-eve", abbr:"AdEv",
+    blurb:"What Adam and Eve did after Eden: penance in the rivers, Eve's account of the fall, and Adam's death." },
+  { id:"testament-of-solomon", abbr:"TSol",
+    blurb:"Solomon interrogates the demons who built the Temple, each naming the angel that thwarts it." },
+  { id:"gospel-of-james", abbr:"Jas",
+    blurb:"The birth and childhood of Mary, and the source of much later devotion to her." },
+  { id:"gospel-of-thomas", abbr:"Thom",
+    blurb:"One hundred and fourteen sayings of Jesus, with no narrative and no passion. Found at Nag Hammadi in 1945." },
+  { id:"gospel-of-mary", abbr:"Mary",
+    blurb:"Mary Magdalene relays a vision to the disciples, and Peter refuses to believe her." },
+  { id:"gospel-of-philip", abbr:"Phil",
+    blurb:"Meditations on sacrament, marriage and resurrection from the Nag Hammadi library." },
+  { id:"gospel-of-judas", abbr:"Jud",
+    blurb:"Jesus takes Judas aside and tells him he will exceed all the rest. Recovered in 2006." },
+  { id:"apocalypse-of-peter", abbr:"ApPt",
+    blurb:"A tour of heaven and hell, and the earliest Christian vision of the afterlife." },
+  { id:"acts-of-paul-and-thecla", abbr:"Thec",
+    blurb:"Thecla leaves her betrothal to follow Paul, and survives both the fire and the beasts." }
+];
+
+// Filled from the index on first use; the renderers wait on loadLibrary().
+let LIBRARY = [];
+let libraryPromise = null;
+
+function loadLibrary(){
+  if(!libraryPromise){
+    libraryPromise = fetch("/api/apoc?doc=index")
+      .then(response => response.json())
+      .then(data => {
+        if(!data.ok) throw new Error(data.error || "Unable to load the Library.");
+        const byId = new Map(data.books.map(book => [book.id, book]));
+        // A book the corpus no longer offers simply drops out of the Library
+        // rather than rendering as a broken card.
+        LIBRARY = LIBRARY_ORDER.map(entry => {
+          const found = byId.get(entry.id);
+          return found ? { ...entry, ...found } : null;
+        }).filter(Boolean);
+        return LIBRARY;
+      })
+      .catch(error => { libraryPromise = null; throw error; });
+  }
+  return libraryPromise;
+}
+
+const bookCache = new Map();
+const essayCache = new Map();
+
+function libraryBook(id){ return LIBRARY.find(b=>b.id===id) || null; }
+
+// Every Library view needs the index before it can name a book, so each one goes
+// through here first. Once it has loaded there is no second wait, and so no flash
+// of a loading state on later navigations.
+async function ensureLibrary(token){
+  if(LIBRARY.length) return true;
+  setLibraryHeader("Library", "#library");
+  listEl.innerHTML = `<div class="library-page"><p class="library-intro">Loading&hellip;</p></div>`;
+  try{
+    await loadLibrary();
+  }catch(error){
+    if(token === libraryRequestToken){
+      listEl.innerHTML = `<div class="library-page"><p class="library-intro">${escapeHtml(error.message)}</p></div>`;
+    }
+    return false;
+  }
+  return token === libraryRequestToken;
+}
+
+async function resolveLibraryBook(id, token){
+  if(!await ensureLibrary(token)) return null;
+  const book = libraryBook(id);
+  if(!book){ location.hash = "#library"; return null; }
+  return book;
+}
+function libraryGroup(key){ return LIBRARY_GROUPS.find(g=>g.key===key) || LIBRARY_GROUPS[0]; }
+function bookAccent(book){ return `var(${libraryGroup(book.group).v})`; }
+function bookHash(book){ return "#library/"+encodeURIComponent(book.id); }
+function chapterHash(book,n){ return bookHash(book)+"/"+n; }
+
+async function loadBook(id){ return loadDoc(bookCache, id, "text", "Unable to load this book."); }
+async function loadEssay(id){ return loadDoc(essayCache, id, "essay", "Unable to load this essay."); }
+
+async function loadDoc(cache, id, doc, fallbackError){
+  if(cache.has(id)) return cache.get(id);
+  const response = await fetch(`/api/apoc?book=${encodeURIComponent(id)}&doc=${doc}`);
+  const data = await response.json();
+  if(!response.ok || !data.ok) throw new Error(data.error || fallbackError);
+  cache.set(id,data);
+  return data;
+}
+
+// Essays reuse the study block renderer, minus the author-bio extraction that
+// only applies to Episcopal Church studies.
+function renderEssaySection(section){
+  return `<section class="study-section"><h2>${escapeHtml(section.heading)}</h2>${
+    (section.blocks||[]).map(renderBlock).join("")}</section>`;
+}
+
+async function renderEssay(id){
+  enterLibrary();
+  const token = ++libraryRequestToken;
+  const book = await resolveLibraryBook(id, token);
+  if(!book) return;
+  setLibraryHeader(book.name, bookHash(book));
+  const accent = bookAccent(book);
+
+  const shell = inner =>
+    `<div class="library-page library-reading" style="--accent:${accent}">${inner}</div>`;
+
+  listEl.innerHTML = shell(`<p class="library-intro">Loading&hellip;</p>`);
+  window.scrollTo({top:0});
+
+  let data, error = "";
+  try{ data = await loadEssay(id); }catch(e){ error = e.message; }
+  if(token !== libraryRequestToken) return;
+
+  if(error){ listEl.innerHTML = shell(`<p class="library-intro">${escapeHtml(error)}</p>`); return; }
+
+  setLibraryHeader(data.title, bookHash(book));
+  const p = data.provenance;
+  listEl.innerHTML = shell(`
+    ${data.standfirst ? `<p class="essay-standfirst">${renderRichText(data.standfirst)}</p>` : ""}
+    ${data.sections.map(renderEssaySection).join("")}
+    <p class="attribution">Written for the
+      <a href="${escapeAttr(p.sourceUrl)}" target="_blank" rel="noopener">apoc</a> collection.
+      <a href="${escapeAttr(p.corpusUrl)}" target="_blank" rel="noopener">View source</a>.</p>`);
+  bindVerseLookups();
+}
+
+function setActiveTab(name){
+  const home = document.getElementById("tabHome");
+  const library = document.getElementById("tabLibrary");
+  if(home) home.classList.toggle("is-active", name==="home");
+  if(library) library.classList.toggle("is-active", name==="library");
+}
+
+function enterLibrary(){
+  document.body.classList.add("library-mode");
+  document.body.classList.remove("article-mode");
+  setActiveTab("library");
+}
+
+// The Library bar replaces the brand header while browsing books. `back` is the
+// hash to return to, or null to mean Home (which has no hash of its own).
+function setLibraryHeader(title, back){
+  const heading = document.getElementById("libraryTitle");
+  const link = document.getElementById("libraryBack");
+  if(heading) heading.textContent = title;
+  if(link){
+    link.setAttribute("href", back || "#");
+    link.dataset.home = back ? "" : "1";
+    link.setAttribute("aria-label", back ? "Back" : "Back to studies");
+  }
+}
+
+async function renderLibraryIndex(){
+  enterLibrary();
+  const token = ++libraryRequestToken;
+  if(!await ensureLibrary(token)) return;
+  setLibraryHeader("Library", null);
+  const groups = LIBRARY_GROUPS.map(group=>{
+    const books = LIBRARY.filter(b=>b.group===group.key);
+    if(!books.length) return "";
+    const cards = books.map((book,i)=>{
+      // Vary the cover tint a little across the row so a grid of covers in one
+      // accent doesn't read as a single flat block.
+      const a = 16 + (i%4)*5, b = 38 + (i%4)*5;
+      return `
+      <li>
+        <a class="book" href="${escapeAttr(book.chapters===1 ? chapterHash(book,1) : bookHash(book))}"
+           style="--accent:${bookAccent(book)};--tint-a:${a}%;--tint-b:${b}%">
+          <span class="book-cover">
+            <span class="book-cover-title">${escapeHtml(book.abbr)}</span>
+            <span class="book-cover-rule" aria-hidden="true"></span>
+          </span>
+          <span class="book-line">
+            <span class="book-name">${escapeHtml(book.name)}</span>
+            <span class="book-meta" title="${book.chapters==null?"Chapter count unavailable":`${book.chapters} ${book.chapters===1?"chapter":"chapters"}`}">${book.chapters==null?"&middot;":book.chapters}</span>
+          </span>
+        </a>
+      </li>`;
+    }).join("");
+    return `
+      <div class="season-head" style="background:var(${group.v})">
+        <span>${escapeHtml(group.name)}</span>
+        <span class="count">${books.length} ${books.length===1?"book":"books"}</span>
+      </div>
+      <ul class="books">${cards}</ul>`;
+  }).join("");
+
+  listEl.innerHTML = `
+    <p class="library-intro">Books of the Apocrypha and Deuterocanon, in public-domain translations
+    from the <a href="https://github.com/sirkitree/apoc" target="_blank" rel="noopener">apoc</a> collection.
+    The Episcopal Church reads these &ldquo;for example of life and instruction of manners,&rdquo;
+    though not to establish doctrine.</p>
+    ${groups}`;
+  window.scrollTo({top:0});
+}
+
+// Books are fetched whole, so both the chapter grid and the reading view wait on
+// the same request and share the same cache entry.
+async function renderBookPage(id){
+  enterLibrary();
+  const token = ++libraryRequestToken;
+  const book = await resolveLibraryBook(id, token);
+  if(!book) return;
+  setLibraryHeader(book.name, "#library");
+  const accent = bookAccent(book);
+
+  const shell = inner => `<div class="library-page" style="--accent:${accent}">
+      <p class="library-intro">${escapeHtml(book.blurb)}</p>${inner}</div>`;
+
+  listEl.innerHTML = shell(`<p class="library-intro">Loading&hellip;</p>`);
+  window.scrollTo({top:0});
+
+  let data, error = "";
+  try{ data = await loadBook(id); }catch(e){ error = e.message; }
+  if(token !== libraryRequestToken) return;
+
+  // A book whose text the Library cannot render yet still has its essay, which is
+  // real content — so say what is missing and offer the essay, rather than
+  // leaving the reader on a bare error.
+  if(error){
+    listEl.innerHTML = shell(`
+      <p class="library-intro">${escapeHtml(error)}</p>
+      <div class="reading-nav" style="margin:0">
+        <a class="pill-btn" href="${escapeAttr(bookHash(book))}/about">About this book</a>
+      </div>`);
+    return;
+  }
+
+  if(data.chapters.length===1){
+    history.replaceState("",document.title,location.pathname+location.search+chapterHash(book,data.chapters[0].number));
+    renderChapter(id, data.chapters[0].number);
+    return;
+  }
+
+  const note = data.book.note ? `<p class="library-intro">${escapeHtml(data.book.note)}</p>` : "";
+  const about = `<div class="reading-nav" style="margin:0 0 4px">
+      <a class="pill-btn" href="${escapeAttr(bookHash(book))}/about">About this book</a>
+    </div>`;
+  const squares = data.chapters.map(chapter=>
+    `<li><a class="chapter-sq" href="${escapeAttr(chapterHash(book,chapter.number))}">${chapter.number}</a></li>`).join("");
+
+  listEl.innerHTML = shell(note + about + `<ul class="chapter-grid">${squares}</ul>`);
+}
+
+async function renderChapter(id, n){
+  enterLibrary();
+  const token = ++libraryRequestToken;
+  const book = await resolveLibraryBook(id, token);
+  if(!book) return;
+  const accent = bookAccent(book);
+
+  // No card: the Library bar carries the title, so the text sits on the page.
+  const shell = inner =>
+    `<div class="library-page library-reading" style="--accent:${accent}">${inner}</div>`;
+
+  const soleChapter = book.chapters===1;
+  setLibraryHeader(soleChapter ? book.name : `${book.name} ${n}`, soleChapter ? "#library" : bookHash(book));
+  listEl.innerHTML = shell(`<p>Loading&hellip;</p>`);
+  window.scrollTo({top:0});
+
+  let data, error = "";
+  try{ data = await loadBook(id); }catch(e){ error = e.message; }
+  if(token !== libraryRequestToken) return;
+
+  if(error){ listEl.innerHTML = shell(`<p>${escapeHtml(error)}</p>`); return; }
+
+  const index = data.chapters.findIndex(chapter=>chapter.number===n);
+  if(index===-1){ location.hash = bookHash(book); return; }
+  const chapter = data.chapters[index];
+  const single = data.chapters.length===1;
+
+  setLibraryHeader(single ? book.name : `${book.name} ${chapter.number}`, single ? "#library" : bookHash(book));
+
+  const about = single
+    ? `<div class="reading-nav" style="margin:0 0 18px">
+         <a class="pill-btn" href="${escapeAttr(bookHash(book))}/about">About this book</a>
+       </div>`
+    : "";
+  const numberNote = data.inlineNumbers === "page"
+    ? `<p class="library-intro" style="margin:0 0 18px">Small numbers are the pages of the manuscript, not verses.</p>`
+    : data.inlineNumbers === "verse"
+    ? `<p class="library-intro" style="margin:0 0 18px">Verse numbers are the translator's, set where he printed them.</p>`
+    : "";
+
+  const prev = data.chapters[index-1], next = data.chapters[index+1];
+  const nav = single ? "" : `
+    <div class="reading-nav">
+      ${prev ? `<a class="pill-btn" href="${escapeAttr(chapterHash(book,prev.number))}">&lsaquo; ${prev.number}</a>` : ""}
+      <span class="spacer"></span>
+      ${next ? `<a class="pill-btn" href="${escapeAttr(chapterHash(book,next.number))}">${next.number} &rsaquo;</a>` : ""}
+    </div>`;
+
+  // Some texts are divided into named sections rather than numbered verses, and
+  // some carry both (Thomas's sayings). Show whichever the text actually has.
+  // A few texts carry loose numbers in the running prose. In the Nag Hammadi and
+  // Codex Tchacos gospels every one is the manuscript page it falls on; in the
+  // Apocalypse of Peter they are the translator's verse numbers, set where he
+  // printed them mid-paragraph. A verse number always opens a clause, which is
+  // what separates it from the cross-references to the Greek sitting alongside.
+  const NUMBER_RULES = {
+    page:  /(?<![\w:.-])(\d{1,3})(?![\w:.-])/g,
+    verse: /(?<![\w:.-])(\d{1,3})(?=\s+[A-Z(])/g
+  };
+  const body = text => {
+    const rule = NUMBER_RULES[data.inlineNumbers];
+    if(!rule) return escapeHtml(text);
+    const kind = data.inlineNumbers==="page"
+      ? { cls:"page-num", label:"Manuscript page" }
+      : { cls:"verse-num", label:"Verse" };
+    let html = "", last = 0;
+    for(const found of text.matchAll(rule)){
+      html += escapeHtml(text.slice(last, found.index));
+      html += `<span class="${kind.cls}" title="${kind.label} ${found[1]}">${found[1]}</span>`;
+      last = found.index + found[1].length;
+    }
+    return html + escapeHtml(text.slice(last));
+  };
+
+  const verses = chapter.verses.map(verse=>{
+    const heading = verse.title
+      ? `<h3 class="section-title">${verse.verse!=null?`${verse.verse}. `:""}${escapeHtml(verse.title)}</h3>`
+      : "";
+    const num = (!verse.title && verse.verse!=null)
+      ? `<span class="verse-num">${verse.verse}</span>` : "";
+    return `${heading}<p class="verse-line">${num}${body(verse.text)}</p>`;
+  }).join("");
+
+  const p = data.provenance;
+  listEl.innerHTML = shell(`
+    ${about}
+    ${numberNote}
+    ${verses}
+    ${nav}
+    <p class="attribution">${escapeHtml(p.edition)} &mdash; ${escapeHtml(p.rights)}, via
+      <a href="${escapeAttr(p.sourceUrl)}" target="_blank" rel="noopener">${escapeHtml(p.source)}</a>.
+      <a href="${escapeAttr(p.corpusUrl)}" target="_blank" rel="noopener">View source text</a>.</p>`);
+}
+
+
 function renderFromRoute(){
   if(location.hash==="#about"){ renderAboutPage(); return; }
+
+  if(location.hash==="#library"){ renderLibraryIndex(); return; }
+  const libraryMatch = location.hash.match(/^#library\/([^/]+)(?:\/(about|\d{1,3}))?$/);
+  if(libraryMatch){
+    const id = decodeURIComponent(libraryMatch[1]);
+    if(libraryMatch[2]==="about") renderEssay(id);
+    else if(libraryMatch[2]) renderChapter(id, Number(libraryMatch[2]));
+    else renderBookPage(id);
+    return;
+  }
+
   const match = location.hash.match(/^#study\/([^/]+)\/(\d{4}-\d{2}-\d{2})$/);
   if(!match){ render(); return; }
   const slug = decodeURIComponent(match[1]);
@@ -1099,7 +1717,27 @@ legendToggle.addEventListener("click",()=>{
   legendToggle.setAttribute("aria-expanded",String(open));
 });
 
-render();
+// Home has no hash of its own, so clear it and re-render — same move the
+// article back button makes. Matches renderFromRoute's fall-through to render().
+function goHome(){
+  if(location.hash){
+    history.pushState("",document.title,location.pathname+location.search);
+  }
+  render();
+  window.scrollTo({top:0});
+}
+document.getElementById("tabHome").addEventListener("click",goHome);
+
+// Every other Library back target is a real hash and navigates on its own.
+document.getElementById("libraryBack").addEventListener("click",event=>{
+  if(event.currentTarget.dataset.home!=="1") return;
+  event.preventDefault();
+  goHome();
+});
+
+// renderFromRoute falls through to render() when no route matches, so it is the
+// only call needed here — rendering the year list first would flash it on top of
+// a deep-linked Library or study page.
 renderFromRoute();
 window.addEventListener("hashchange",renderFromRoute);
 // land on the current week on first load

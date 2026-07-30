@@ -377,3 +377,72 @@ Use these cases before considering the feature complete:
 - Page contains downloads.
 - Page contains no image.
 - Source markup changes enough that a section heading is missing.
+
+## The Library
+
+A second section of the app, reached from a persistent bottom tab bar (Home / Library), carrying the deuterocanonical books alongside the weekly lectionary studies.
+
+### Navigation and chrome
+
+The brand header, year pager, colour key and footer all belong to the lectionary calendar, so `body.library-mode` hides them and shows a plain bar instead: a back arrow and the current title. The arrow is contextual — from the Library index it returns Home, from a book to the index, from a chapter or essay to the book. Routes are hash-based, matching the existing scheme:
+
+```
+#library                    the index, grouped by corpus division
+#library/<book-id>          a book: description, essay link, chapter grid
+#library/<book-id>/<n>      one chapter
+#library/<book-id>/about    that book's scholarly essay
+```
+
+The tab bar is hidden while the verse panel is open, since on phones that panel is a bottom sheet and would collide.
+
+Eleven of the twenty-five books hold a single chapter — Susanna, the Prayer of Manasseh, the gospels of Thomas, Mary, Philip and Judas, and the rest. For those the book page has nothing to choose: no chapter grid, only a button. So their Library cards link straight to the text, a deep link to their book page redirects there, and the reading view carries the essay link and returns to the Library index instead of to a page nothing points at. Books with real chapters keep the intermediate page, because there the grid is the point.
+
+### Presentation
+
+Book covers are generated from CSS rather than shipped as images: each is an accent-tinted panel carrying the book's scholarly siglum (`Tob`, `Sir`, `1 Mac`), with a spine rule down the left edge and the tint varied slightly per position so a grid of them doesn't read flat. This costs no assets, adapts to dark mode for free, and sits naturally beside the season cards on the Home side. A `cover` field is reserved in the manifest for real artwork later.
+
+Books are three across on a phone and five above 520px, matching `ul.studies`. Chapter grids are six across and nine above the breakpoint. Reading and essay views drop the card container entirely and sit on the page, with a 62ch measure and looser leading for continuous text.
+
+### Corpus contract
+
+Text and essays come from `github.com/sirkitree/apoc`, fetched live through `api/apoc.js` — nothing is copied into this repository. The corpus is pinned to a commit SHA rather than a branch, so a corpus edit can never silently change what the app serves; taking in corpus changes is a deliberate `CORPUS_REF` bump followed by re-verification of every book.
+
+The corpus publishes `books.json`, a manifest giving every text's directory, README, and for each of its files the path, format, edition, translator, source and rights — along with the formats' own heading and verse regexes, and an explicit list of files that are *not* scripture and must never be served as such. That manifest is the source of truth. `api/apoc.js` keeps only `LIBRARY_BOOKS`, which decides which texts the Library offers and what to call them, and which doubles as the allowlist: the client sends a key from it and nothing else, so no user-controlled string reaches the fetch and path traversal is structurally impossible.
+
+Where a manifest book holds several primary files they are separate compositions rather than alternative editions, so the Library lists them separately — the Additions to Daniel appear as Susanna, Bel and the Dragon, and the Prayer of Azariah, all sharing one essay.
+
+`?doc=index` serves the Library index, deriving each book's name and section from the manifest and its chapter count by parsing the text. Parsing all of them costs about 800ms cold and nothing warm, which is affordable precisely because the ref is pinned: the answer cannot change until it moves, so the result caches for a week and is memoised for the life of the process. The client keeps only the running order, a cover siglum and a one-line description — the three things the corpus has no opinion about. Adding a book is a `CORPUS_REF` bump, one line in `LIBRARY_BOOKS`, and those two editorial fields.
+
+No response here carries `stale-while-revalidate`. The pinned ref means a text cannot change under us, so serving a stale body sounds free — but the *shape* of these responses changes whenever the handler is deployed, and a reader holding a stale copy gets one render from a payload the running client no longer understands. That is not theoretical: it happened four times while building this, each time looking like a rendering bug rather than a cache. Revalidating costs a conditional request, and the CDN still holds every response for a week.
+
+`FORMAT_PARSERS` maps manifest format names to parsers, so a format the Library cannot yet render fails loudly with a 501 instead of producing a mangled text. Seven parsers cover every text in the corpus but one:
+
+- `verseLines` — `Chapter 1` headings with one verse per line as `1 <text>`. Single-chapter books carry no heading, so verses seen before one open chapter 1.
+- `colonLines` — one verse per line as `1:1 <text>`.
+- `douayRheims` — Project Gutenberg text, verses as blank-line separated paragraphs opening `1:1. `. Editorial footnotes sit between verses as ordinary paragraphs and are dropped by not matching the marker.
+- `cvParagraphs` — R. H. Charles's Enoch and Jubilees, verses as paragraphs opening `1:1 `. A verse may carry continuation lines indented four spaces preserving his poetic layout; those belong to the verse and are folded in. A continuation of the form `[<witness>: ...]` is apparatus, a parallel recension, and is dropped — while Charles's own square brackets around restored text carry no witness label and so survive.
+- `numberedParagraphs` — a text with no chapters, divided only into numbered sections. The whole book becomes one chapter whose verses are those sections, which is what a work read straight through wants and needs no schema change.
+- `cvParagraphsRanged` — as `cvParagraphs`, but a marker may name a range where the printed edition numbers two verses together, and the body is delimited by rules of equals signs.
+- `sectionedProse` — prose divided into named sections rather than numbered verses: the Mattison translations of Thomas, Mary, Philip and Judas. The heading pattern differs from one translation to the next, so it is read from the manifest per file rather than guessed. Sections become the verses of a single chapter, each carrying a title. Where the heading is numbered — Thomas's sayings — that number is used; an unnumbered section such as Thomas's Prologue keeps a null number and the reader shows no numeral. A trailing heading with no prose beneath it is the ancient colophon repeating the work's title, not a section, and is dropped.
+
+Two rules make this safe to leave running. Where the manifest states how many sections a file holds, the parse is held to that count and a mismatch is refused: a count that drifts means the heading pattern stopped matching the file. And where a text's edition of record cannot be addressed by verse — the Apocalypse of Moses sets its chapter and verse numbers inside the running prose — the manifest names a mechanically derived rendering in `derivedFile`, which is read instead while the edition of record's provenance is kept, since no word of the translation differs.
+
+Every text in the corpus is now served. The Apocalypse of Peter was the last, and it arrives the same way the Life of Adam and Eve did: its edition of record interleaves M. R. James's introduction, his notes and the translations he prints with nothing to tell them apart, so the corpus publishes a derived file holding only the three witnesses he translates in full, and `resolve()` reads that instead.
+
+One thing the format spec gets wrong for that book is worth knowing. `sectioned-prose` states that bare numbers in the running text are manuscript page numbers, which holds for the Nag Hammadi and Codex Tchacos gospels but not here: the Akhmim run carries James's own verse numbers inline, alongside cross-references to the Greek. So what a text's inline numbers *mean* is declared per book in `LIBRARY_BOOKS` rather than inferred from its format: `page` for the three gospels whose sources say so, `verse` for the Apocalypse of Peter.
+
+Rendering James's numbers needs one more distinction, because his verse numbers sit in the same prose as cross-references to the Greek. A verse number always opens a clause and a cross-reference never does, so the verse rule matches a number only when a capital letter or an opening bracket follows it. On the Akhmim run that yields exactly his 1 to 34 and nothing else; on the Bodleian leaf and the Ethiopic text, which carry only references, it yields nothing.
+
+Chapters are driven by the verse markers rather than the chapter headings, because the Sirach source was for a time missing its `Ecclesiasticus Chapter 48` heading even though all 28 of that chapter's verses were present. `verseLines` opens a chapter implicitly only when a file carries no chapter headings anywhere, since otherwise a title line reading `1 ESDRAS` matches the verse shape and manufactures a spurious chapter 1 ahead of the real one.
+
+A parse yielding no chapters, an empty chapter, or chapter numbers that do not strictly increase is refused with a 502 rather than served half-empty. That last check is what catches the spurious-chapter class of bug.
+
+Taking in corpus changes is deliberate: bump `CORPUS_REF`, then re-run the book and essay checks for every id in `LIBRARY_BOOKS` and confirm the chapter counts and verse totals are unchanged or explainable.
+
+Essays are parsed from each book directory's `README.md` into the same typed blocks the study reader uses, extended with `heading`, `table` and `quote`. Each README closes with a listing of the files in its corpus directory — paths, formats and sizes — which is repository housekeeping rather than part of the essay, and is dropped; the reading views already link the exact source file. Inline markup is flattened to plain text, since the client escapes everything and only linkifies scripture references — which means references inside an essay become tap-to-read for free.
+
+### Verse reference safety
+
+bible-api.com resolves a book name it does not recognise to the nearest one it does, rather than returning an error. `Prayer of Azariah 1:1` comes back as the Prayer of Manasses; `Song of the Three Holy Children 1:1` comes back as the Song of Solomon. Serving that is worse than serving nothing, so `api/passage.js` checks every response against the book actually returned and rejects a mismatch. `BOOK_SYNONYMS` groups the names that mean one book and both sides are resolved to their group before comparing. Grouping rather than renaming matters: the name the source returns varies by translation as well as from the name asked with, so a one-directional map rejects valid lookups in one direction.
+
+For the same reason those two books are deliberately absent from `VERSE_RE`: the guard would reject them anyway, and leaving them unlinked avoids a dead tap.

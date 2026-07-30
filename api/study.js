@@ -8,6 +8,7 @@ const READING_LABEL = /^(Old Testament|First Reading|Psalm|Canticle|Epistle|Seco
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
+    res.setHeader("Cache-Control", CACHE_MISS);
     res.status(405).json({ ok: false, error: "Method not allowed" });
     return;
   }
@@ -17,6 +18,7 @@ export default async function handler(req, res) {
     const hub = safeSourceUrl(req.query.hub);
 
     if (!detail && !hub) {
+      res.setHeader("Cache-Control", CACHE_MISS);
       res.status(400).json({ ok: false, error: "Missing detail or hub URL" });
       return;
     }
