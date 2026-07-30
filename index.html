@@ -1275,66 +1275,120 @@ const LIBRARY_GROUPS = [
   { key:"ntapoc",  name:"New Testament Apocrypha",   v:"--ntapoc"  }
 ];
 
-const LIBRARY = [
-  { id:"1-esdras", abbr:"1 Esd", name:"1 Esdras", group:"deutero", chapters:9,
+// The Library's running order and the two things the corpus cannot supply: a
+// scholarly siglum for the cover, and a one-line description. Everything else —
+// each book's name, which section it belongs to, and how many chapters it holds —
+// comes from /api/apoc?doc=index, which derives it from the corpus manifest and
+// from parsing the texts. Adding a book here means adding it to LIBRARY_BOOKS in
+// api/apoc.js and writing those two fields; nothing else is restated.
+const LIBRARY_ORDER = [
+  { id:"1-esdras", abbr:"1 Esd",
     blurb:"The return from exile retold, including the contest of the three young bodyguards before Darius." },
-  { id:"2-esdras", abbr:"2 Esd", name:"2 Esdras", group:"deutero", chapters:16,
+  { id:"2-esdras", abbr:"2 Esd",
     blurb:"Apocalyptic visions wrestling with why the righteous suffer and why Zion lies in ruins." },
-  { id:"tobit", abbr:"Tob", name:"Tobit", group:"deutero", chapters:14,
+  { id:"tobit", abbr:"Tob",
     blurb:"A family in exile, a perilous journey, and the archangel Raphael travelling in disguise." },
-  { id:"judith", abbr:"Jdt", name:"Judith", group:"deutero", chapters:16,
+  { id:"judith", abbr:"Jdt",
     blurb:"A widow walks into the enemy camp alone and comes back having saved her city." },
-  { id:"additions-to-esther", abbr:"AddEs", name:"Additions to Esther", group:"deutero", chapters:7,
+  { id:"additions-to-esther", abbr:"AddEs",
     blurb:"The Greek expansions to Esther, which name God directly where the Hebrew never does." },
-  { id:"wisdom-of-solomon", abbr:"Wis", name:"Wisdom of Solomon", group:"deutero", chapters:19,
+  { id:"wisdom-of-solomon", abbr:"Wis",
     blurb:"Alexandrian Judaism meets Greek philosophy: righteousness, immortality, and Wisdom herself." },
-  { id:"sirach", abbr:"Sir", name:"Sirach", group:"deutero", chapters:51,
+  { id:"sirach", abbr:"Sir",
     blurb:"Ben Sira's book of practical wisdom, also called Ecclesiasticus. The longest of the Apocrypha." },
-  { id:"baruch", abbr:"Bar", name:"Baruch", group:"deutero", chapters:6,
+  { id:"baruch", abbr:"Bar",
     blurb:"Confession and consolation from exile, attributed to Jeremiah's secretary." },
-  { id:"prayer-of-azariah", abbr:"PrAz", name:"Prayer of Azariah", group:"deutero", chapters:1,
+  { id:"prayer-of-azariah", abbr:"PrAz",
     blurb:"Three young men sing from inside the furnace, calling all creation to bless the Lord." },
-  { id:"susanna", abbr:"Sus", name:"Susanna", group:"deutero", chapters:1,
+  { id:"susanna", abbr:"Sus",
     blurb:"Two elders, a false accusation, and a young Daniel cross-examining the witnesses." },
-  { id:"bel-and-the-dragon", abbr:"Bel", name:"Bel and the Dragon", group:"deutero", chapters:1,
+  { id:"bel-and-the-dragon", abbr:"Bel",
     blurb:"Daniel exposes an idol's priests by scattering ash on the temple floor." },
-  { id:"prayer-of-manasseh", abbr:"PrMan", name:"Prayer of Manasseh", group:"deutero", chapters:1,
+  { id:"prayer-of-manasseh", abbr:"PrMan",
     blurb:"Fifteen verses of penitence in the mouth of Judah's worst king, sung as a canticle at Evening Prayer." },
-  { id:"1-maccabees", abbr:"1 Mac", name:"1 Maccabees", group:"deutero", chapters:16,
+  { id:"1-maccabees", abbr:"1 Mac",
     blurb:"The Maccabean revolt told as sober history — the events behind Hanukkah." },
-  { id:"2-maccabees", abbr:"2 Mac", name:"2 Maccabees", group:"deutero", chapters:15,
+  { id:"2-maccabees", abbr:"2 Mac",
     blurb:"The same revolt retold with martyrdoms, and the earliest clear hope of resurrection." },
-
-  { id:"1-enoch", abbr:"1 En", name:"1 Enoch", group:"pseudep", chapters:108,
+  { id:"1-enoch", abbr:"1 En",
     blurb:"Watchers who fell, a tour of the secrets of heaven, and the Son of Man. Quoted by name in Jude." },
-  { id:"2-enoch", abbr:"2 En", name:"2 Enoch", group:"pseudep", chapters:68,
+  { id:"2-enoch", abbr:"2 En",
     blurb:"Enoch carried up through seven heavens, and returned for thirty days to instruct his sons." },
-  { id:"jubilees", abbr:"Jub", name:"Jubilees", group:"pseudep", chapters:50,
+  { id:"jubilees", abbr:"Jub",
     blurb:"Genesis and Exodus retold on a calendar of jubilees, dictated to Moses on Sinai." },
-
-  { id:"life-of-adam-and-eve", abbr:"AdEv", name:"Life of Adam and Eve", group:"pseudep", chapters:43,
+  { id:"life-of-adam-and-eve", abbr:"AdEv",
     blurb:"What Adam and Eve did after Eden: penance in the rivers, Eve's account of the fall, and Adam's death." },
-  { id:"testament-of-solomon", abbr:"TSol", name:"Testament of Solomon", group:"pseudep", chapters:1,
+  { id:"testament-of-solomon", abbr:"TSol",
     blurb:"Solomon interrogates the demons who built the Temple, each naming the angel that thwarts it." },
-
-  { id:"gospel-of-james", abbr:"Jas", name:"Gospel of James", group:"ntapoc", chapters:1,
+  { id:"gospel-of-james", abbr:"Jas",
     blurb:"The birth and childhood of Mary, and the source of much later devotion to her." },
-  { id:"gospel-of-thomas", abbr:"Thom", name:"Gospel of Thomas", group:"ntapoc", chapters:1,
+  { id:"gospel-of-thomas", abbr:"Thom",
     blurb:"One hundred and fourteen sayings of Jesus, with no narrative and no passion. Found at Nag Hammadi in 1945." },
-  { id:"gospel-of-mary", abbr:"Mary", name:"Gospel of Mary", group:"ntapoc", chapters:1,
+  { id:"gospel-of-mary", abbr:"Mary",
     blurb:"Mary Magdalene relays a vision to the disciples, and Peter refuses to believe her." },
-  { id:"gospel-of-philip", abbr:"Phil", name:"Gospel of Philip", group:"ntapoc", chapters:1,
+  { id:"gospel-of-philip", abbr:"Phil",
     blurb:"Meditations on sacrament, marriage and resurrection from the Nag Hammadi library." },
-  { id:"gospel-of-judas", abbr:"Jud", name:"Gospel of Judas", group:"ntapoc", chapters:1,
+  { id:"gospel-of-judas", abbr:"Jud",
     blurb:"Jesus takes Judas aside and tells him he will exceed all the rest. Recovered in 2006." },
-  { id:"acts-of-paul-and-thecla", abbr:"Thec", name:"Acts of Paul and Thecla", group:"ntapoc", chapters:1,
+  { id:"apocalypse-of-peter", abbr:"ApPt",
+    blurb:"A tour of heaven and hell, and the earliest Christian vision of the afterlife." },
+  { id:"acts-of-paul-and-thecla", abbr:"Thec",
     blurb:"Thecla leaves her betrothal to follow Paul, and survives both the fire and the beasts." }
 ];
+
+// Filled from the index on first use; the renderers wait on loadLibrary().
+let LIBRARY = [];
+let libraryPromise = null;
+
+function loadLibrary(){
+  if(!libraryPromise){
+    libraryPromise = fetch("/api/apoc?doc=index")
+      .then(response => response.json())
+      .then(data => {
+        if(!data.ok) throw new Error(data.error || "Unable to load the Library.");
+        const byId = new Map(data.books.map(book => [book.id, book]));
+        // A book the corpus no longer offers simply drops out of the Library
+        // rather than rendering as a broken card.
+        LIBRARY = LIBRARY_ORDER.map(entry => {
+          const found = byId.get(entry.id);
+          return found ? { ...entry, ...found } : null;
+        }).filter(Boolean);
+        return LIBRARY;
+      })
+      .catch(error => { libraryPromise = null; throw error; });
+  }
+  return libraryPromise;
+}
 
 const bookCache = new Map();
 const essayCache = new Map();
 
 function libraryBook(id){ return LIBRARY.find(b=>b.id===id) || null; }
+
+// Every Library view needs the index before it can name a book, so each one goes
+// through here first. Once it has loaded there is no second wait, and so no flash
+// of a loading state on later navigations.
+async function ensureLibrary(token){
+  if(LIBRARY.length) return true;
+  setLibraryHeader("Library", "#library");
+  listEl.innerHTML = `<div class="library-page"><p class="library-intro">Loading&hellip;</p></div>`;
+  try{
+    await loadLibrary();
+  }catch(error){
+    if(token === libraryRequestToken){
+      listEl.innerHTML = `<div class="library-page"><p class="library-intro">${escapeHtml(error.message)}</p></div>`;
+    }
+    return false;
+  }
+  return token === libraryRequestToken;
+}
+
+async function resolveLibraryBook(id, token){
+  if(!await ensureLibrary(token)) return null;
+  const book = libraryBook(id);
+  if(!book){ location.hash = "#library"; return null; }
+  return book;
+}
 function libraryGroup(key){ return LIBRARY_GROUPS.find(g=>g.key===key) || LIBRARY_GROUPS[0]; }
 function bookAccent(book){ return `var(${libraryGroup(book.group).v})`; }
 function bookHash(book){ return "#library/"+encodeURIComponent(book.id); }
@@ -1360,12 +1414,12 @@ function renderEssaySection(section){
 }
 
 async function renderEssay(id){
-  const book = libraryBook(id);
-  if(!book){ location.hash="#library"; return; }
   enterLibrary();
+  const token = ++libraryRequestToken;
+  const book = await resolveLibraryBook(id, token);
+  if(!book) return;
   setLibraryHeader(book.name, bookHash(book));
   const accent = bookAccent(book);
-  const token = ++libraryRequestToken;
 
   const shell = inner =>
     `<div class="library-page library-reading" style="--accent:${accent}">${inner}</div>`;
@@ -1416,8 +1470,10 @@ function setLibraryHeader(title, back){
   }
 }
 
-function renderLibraryIndex(){
+async function renderLibraryIndex(){
   enterLibrary();
+  const token = ++libraryRequestToken;
+  if(!await ensureLibrary(token)) return;
   setLibraryHeader("Library", null);
   const groups = LIBRARY_GROUPS.map(group=>{
     const books = LIBRARY.filter(b=>b.group===group.key);
@@ -1436,7 +1492,7 @@ function renderLibraryIndex(){
           </span>
           <span class="book-line">
             <span class="book-name">${escapeHtml(book.name)}</span>
-            <span class="book-meta" title="${book.chapters} ${book.chapters===1?"chapter":"chapters"}">${book.chapters}</span>
+            <span class="book-meta" title="${book.chapters==null?"Chapter count unavailable":`${book.chapters} ${book.chapters===1?"chapter":"chapters"}`}">${book.chapters==null?"&middot;":book.chapters}</span>
           </span>
         </a>
       </li>`;
@@ -1461,12 +1517,12 @@ function renderLibraryIndex(){
 // Books are fetched whole, so both the chapter grid and the reading view wait on
 // the same request and share the same cache entry.
 async function renderBookPage(id){
-  const book = libraryBook(id);
-  if(!book){ location.hash="#library"; return; }
   enterLibrary();
+  const token = ++libraryRequestToken;
+  const book = await resolveLibraryBook(id, token);
+  if(!book) return;
   setLibraryHeader(book.name, "#library");
   const accent = bookAccent(book);
-  const token = ++libraryRequestToken;
 
   const shell = inner => `<div class="library-page" style="--accent:${accent}">
       <p class="library-intro">${escapeHtml(book.blurb)}</p>${inner}</div>`;
@@ -1478,7 +1534,17 @@ async function renderBookPage(id){
   try{ data = await loadBook(id); }catch(e){ error = e.message; }
   if(token !== libraryRequestToken) return;
 
-  if(error){ listEl.innerHTML = shell(`<p class="library-intro">${escapeHtml(error)}</p>`); return; }
+  // A book whose text the Library cannot render yet still has its essay, which is
+  // real content — so say what is missing and offer the essay, rather than
+  // leaving the reader on a bare error.
+  if(error){
+    listEl.innerHTML = shell(`
+      <p class="library-intro">${escapeHtml(error)}</p>
+      <div class="reading-nav" style="margin:0">
+        <a class="pill-btn" href="${escapeAttr(bookHash(book))}/about">About this book</a>
+      </div>`);
+    return;
+  }
 
   if(data.chapters.length===1){
     history.replaceState("",document.title,location.pathname+location.search+chapterHash(book,data.chapters[0].number));
@@ -1493,20 +1559,15 @@ async function renderBookPage(id){
   const squares = data.chapters.map(chapter=>
     `<li><a class="chapter-sq" href="${escapeAttr(chapterHash(book,chapter.number))}">${chapter.number}</a></li>`).join("");
 
-  const body = data.chapters.length===1
-    ? `<div class="reading-nav"><a class="pill-btn primary"
-         href="${escapeAttr(chapterHash(book,data.chapters[0].number))}">Read ${escapeHtml(book.name)}</a></div>`
-    : `<ul class="chapter-grid">${squares}</ul>`;
-
-  listEl.innerHTML = shell(note + about + body);
+  listEl.innerHTML = shell(note + about + `<ul class="chapter-grid">${squares}</ul>`);
 }
 
 async function renderChapter(id, n){
-  const book = libraryBook(id);
-  if(!book){ location.hash="#library"; return; }
   enterLibrary();
-  const accent = bookAccent(book);
   const token = ++libraryRequestToken;
+  const book = await resolveLibraryBook(id, token);
+  if(!book) return;
+  const accent = bookAccent(book);
 
   // No card: the Library bar carries the title, so the text sits on the page.
   const shell = inner =>

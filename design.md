@@ -411,6 +411,10 @@ The corpus publishes `books.json`, a manifest giving every text's directory, REA
 
 Where a manifest book holds several primary files they are separate compositions rather than alternative editions, so the Library lists them separately — the Additions to Daniel appear as Susanna, Bel and the Dragon, and the Prayer of Azariah, all sharing one essay.
 
+`?doc=index` serves the Library index, deriving each book's name and section from the manifest and its chapter count by parsing the text. Parsing all of them costs about 800ms cold and nothing warm, which is affordable precisely because the ref is pinned: the answer cannot change until it moves, so the result caches for a week and is memoised for the life of the process. The client keeps only the running order, a cover siglum and a one-line description — the three things the corpus has no opinion about. Adding a book is a `CORPUS_REF` bump, one line in `LIBRARY_BOOKS`, and those two editorial fields.
+
+That index is the one response served without `stale-while-revalidate`. Everything else here may be served stale while it revalidates, which is harmless for a text that cannot change under a pinned ref; but the index gates every other Library view, so a stale copy would hide a newly added book from every returning reader until they loaded it twice.
+
 `FORMAT_PARSERS` maps manifest format names to parsers, so a format the Library cannot yet render fails loudly with a 501 instead of producing a mangled text. Seven parsers cover every text in the corpus but one:
 
 - `verseLines` — `Chapter 1` headings with one verse per line as `1 <text>`. Single-chapter books carry no heading, so verses seen before one open chapter 1.

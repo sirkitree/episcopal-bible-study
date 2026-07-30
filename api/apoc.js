@@ -4,6 +4,12 @@ const CACHE_MISS = "public, s-maxage=300, stale-while-revalidate=1800";
 // URL stays the same across a parser change or a CORPUS_REF bump, a reader could
 // be pinned to stale output long after a deploy fixed it.
 const CACHE_OK = "public, max-age=0, s-maxage=604800, stale-while-revalidate=2592000";
+// The index gates every Library view, so it deliberately drops
+// stale-while-revalidate: serving a stale copy here hides a book that was just
+// added from anyone who has visited before. It is under 2 KB, so always
+// revalidating costs a conditional request and nothing more. The CDN still holds
+// it for a week, because the pinned ref means it cannot change under us.
+const CACHE_INDEX = "public, max-age=0, s-maxage=604800";
 
 const RAW_HOST = "raw.githubusercontent.com";
 const CORPUS_REPO = "sirkitree/apoc";
@@ -46,8 +52,13 @@ const LIBRARY_BOOKS = {
   "gospel-of-thomas":        { manifestId: "gospel-of-thomas" },
   "gospel-of-mary":          { manifestId: "gospel-of-mary" },
   "gospel-of-philip":        { manifestId: "gospel-of-philip" },
-  "gospel-of-judas":         { manifestId: "gospel-of-judas" }
+  "gospel-of-judas":         { manifestId: "gospel-of-judas" },
+  "apocalypse-of-peter":     { manifestId: "apocalypse-of-peter" }
 };
+
+// The corpus groups its texts into three phases, which are exactly the Library's
+// three sections.
+const GROUP_BY_PHASE = { 1: "deutero", 2: "pseudep", 3: "ntapoc" };
 
 // Manifest format name -> parser. A format absent from this map is one the
 // Library does not yet render, and asking for that book returns a clear error
@@ -130,6 +141,16 @@ export default async function handler(req, res) {
     return;
   }
 
+  if (req.query.doc === "index") {
+    try {
+      await sendIndex(res);
+    } catch (error) {
+      res.setHeader("Cache-Control", CACHE_MISS);
+      res.status(502).json({ ok: false, error: error.message || "Unable to load the Library." });
+    }
+    return;
+  }
+
   const key = typeof req.query.book === "string" ? req.query.book.trim().toLowerCase() : "";
   if (!/^[a-z0-9-]{1,64}$/.test(key) || !Object.prototype.hasOwnProperty.call(LIBRARY_BOOKS, key)) {
     res.setHeader("Cache-Control", CACHE_MISS);
@@ -147,6 +168,47 @@ export default async function handler(req, res) {
     res.setHeader("Cache-Control", CACHE_MISS);
     res.status(502).json({ ok: false, error: error.message || "Unable to load this book." });
   }
+}
+
+// The Library index: name, section and chapter count for every book on offer,
+// so the client holds only what the corpus cannot know — a siglum, a one-line
+// description, and the order to show them in.
+//
+// The chapter count is the one fact here that requires reading the text, so this
+// parses each book. That is affordable because CORPUS_REF is immutable: the
+// answer cannot change until the pin moves, so it caches for a week and the
+// parses are memoised for the life of the process. A book that fails to parse is
+// still listed, without a count, rather than taking the whole index down.
+const chapterCounts = new Map();
+
+async function countChapters(key) {
+  if (chapterCounts.has(key)) return chapterCounts.get(key);
+  const { file } = await resolve(key);
+  const parser = PARSERS[FORMAT_PARSERS[file.format]];
+  if (!parser) return null;
+  const count = parser(await fetchSource(file.path), file).length;
+  chapterCounts.set(key, count);
+  return count;
+}
+
+async function sendIndex(res) {
+  const manifest = await loadManifest();
+
+  const books = await Promise.all(Object.entries(LIBRARY_BOOKS).map(async ([key, wanted]) => {
+    const book = manifest.get(wanted.manifestId);
+    if (!book) return null;
+    let chapters = null;
+    try { chapters = await countChapters(key); } catch { /* listed without a count */ }
+    return {
+      id: key,
+      name: wanted.name || book.name,
+      group: GROUP_BY_PHASE[book.phase] || "deutero",
+      chapters
+    };
+  }));
+
+  res.setHeader("Cache-Control", CACHE_INDEX);
+  res.status(200).json({ ok: true, books: books.filter(Boolean) });
 }
 
 async function sendText(res, key, { book, file, name }) {
