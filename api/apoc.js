@@ -1,9 +1,10 @@
-const CACHE_MISS = "public, s-maxage=300, stale-while-revalidate=1800";
+const CACHE_MISS = "public, max-age=0, s-maxage=300";
 // `max-age=0` keeps browsers revalidating while `s-maxage` lets the CDN hold the
 // response for a week. Without it browsers cache heuristically, and because the
 // URL stays the same across a parser change or a CORPUS_REF bump, a reader could
 // be pinned to stale output long after a deploy fixed it.
-// No stale-while-revalidate anywhere here. The pinned ref means a text cannot
+// No stale-while-revalidate on anything here, success or error. The pinned ref
+// means a text cannot
 // change under us, so serving a stale body sounds free — but the *shape* of these
 // responses changes whenever this handler is deployed, and a reader holding a
 // stale copy gets one render from a payload the running client no longer
